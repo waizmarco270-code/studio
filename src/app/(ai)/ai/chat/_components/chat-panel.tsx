@@ -428,14 +428,14 @@ export function ChatPanel() {
             )}
             <form
               onSubmit={handleSubmit}
-              className="relative flex w-full items-center"
+              className="flex w-full items-center gap-2"
             >
               <div className="relative flex-1">
                  <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={placeholder}
-                    className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-14 pr-24 shadow-sm"
+                    className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-12 pr-4 shadow-sm"
                     onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                         handleSubmit(e);
@@ -447,7 +447,7 @@ export function ChatPanel() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
                     onClick={handleFileButtonClick}
                     disabled={isPending}
                   >
@@ -460,23 +460,24 @@ export function ChatPanel() {
                   className="hidden"
                   onChange={handleFileSelect}
                 />
-                 <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-14 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-                    onClick={handleMicClick}
-                    disabled={isPending}
-                    >
-                    {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
-                    <span className="sr-only">Toggle voice recognition</span>
-                </Button>
               </div>
+
+               <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={handleMicClick}
+                  disabled={isPending}
+                  >
+                  {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-s" />}
+                  <span className="sr-only">Toggle voice recognition</span>
+              </Button>
 
                 <Button
                   type="submit"
                   size="icon"
-                  className="ml-2 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary/80"
+                  className="shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary/80"
                   disabled={isPending || !input.trim()}
                 >
                   {isPending ? (
@@ -505,5 +506,7 @@ export function ChatPanel() {
     </div>
   );
 }
+
+    
 
     
