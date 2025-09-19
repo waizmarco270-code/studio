@@ -20,7 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./chat-message";
 import { PromptTemplates } from "./prompt-templates";
 import { FileUploadDialog } from "./file-upload-dialog";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type Message = {
   role: "user" | "assistant";
