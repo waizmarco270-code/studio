@@ -455,7 +455,7 @@ export function ChatPanel() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-16 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                    className="absolute right-14 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
                     onClick={handleMicClick}
                     disabled={isPending}
                     >
