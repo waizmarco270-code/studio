@@ -25,6 +25,7 @@ import { FileUploadDialog } from "./file-upload-dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar";
+import { PasswordDialog } from "./password-dialog";
 
 type Message = {
   role: "user" | "assistant";
@@ -37,6 +38,9 @@ const examplePrompts = [
   "How do I make an HTTP request in Javascript?",
   "What's the meaning of life?",
 ];
+
+const REQUEST_LIMIT = 5;
+const UNLOCK_PASSWORD = "marcoaiuc";
 
 declare global {
   interface Window {
@@ -64,6 +68,9 @@ export function ChatPanel() {
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [fileSummary, setFileSummary] = useState<{ name: string; summary: string | null; progress: string | null } | null>(null);
   const { toggleSidebar } = useSidebar();
+  const [requestCount, setRequestCount] = useState(0);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -108,6 +115,16 @@ export function ChatPanel() {
     }
   }, [messages, fileSummary]);
 
+  useEffect(() => {
+    const storedCount = localStorage.getItem('requestCount');
+    const unlockedStatus = localStorage.getItem('isUnlocked');
+    if (unlockedStatus === 'true') {
+      setIsUnlocked(true);
+    } else if (storedCount) {
+      setRequestCount(parseInt(storedCount, 10));
+    }
+  }, []);
+
   const handleMicClick = () => {
     if (!recognitionRef.current) {
       toast({
@@ -129,6 +146,11 @@ export function ChatPanel() {
   const handleSendMessage = (text: string) => {
     if (!text.trim() || isPending) return;
 
+     if (!isUnlocked && requestCount >= REQUEST_LIMIT) {
+      setShowPasswordDialog(true);
+      return;
+    }
+
     const newUserMessage: Message = { role: "user", content: text };
     const newMessages = [...messages, newUserMessage];
     setMessages(newMessages);
@@ -141,6 +163,12 @@ export function ChatPanel() {
             const utterance = new SpeechSynthesisUtterance(result);
             window.speechSynthesis.speak(utterance);
         }
+        const newCount = requestCount + 1;
+        setRequestCount(newCount);
+        if (!isUnlocked) {
+          localStorage.setItem('requestCount', newCount.toString());
+        }
+
         const aiMessage: Message = { role: "assistant", content: result };
         setMessages([...newMessages, aiMessage]);
 
@@ -155,7 +183,6 @@ export function ChatPanel() {
             : errorMessage,
         });
         
-        // Revert on error
         setMessages(newMessages.slice(0, -1));
       }
     });
@@ -222,6 +249,27 @@ export function ChatPanel() {
         description: "The current conversation has been removed.",
     });
   };
+
+  const handlePasswordSubmit = (password: string) => {
+    if (password === UNLOCK_PASSWORD) {
+      setIsUnlocked(true);
+      localStorage.setItem('isUnlocked', 'true');
+      localStorage.removeItem('requestCount');
+      setShowPasswordDialog(false);
+      toast({
+        title: "Success",
+        description: "You have unlocked unlimited requests.",
+      });
+      handleSendMessage(input);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Incorrect Password",
+        description: "Please try again.",
+      });
+    }
+  };
+
 
   return (
     <div className="relative flex h-screen w-full flex-col items-center bg-background text-foreground">
@@ -313,6 +361,11 @@ export function ChatPanel() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-background/50 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-3xl p-4 space-y-4">
+            {!isUnlocked && requestCount >= REQUEST_LIMIT && (
+              <div className="text-center text-sm text-destructive font-medium">
+                You have reached your message limit. Enter the password to continue.
+              </div>
+            )}
             <form
               onSubmit={handleSubmit}
               className="relative flex items-center gap-2"
@@ -384,6 +437,11 @@ export function ChatPanel() {
         onOpenChange={setShowUploadDialog}
         onConfirm={handleUploadConfirm}
       />
+      <PasswordDialog
+        open={showPasswordDialog}
+        onOpenChange={setShowPasswordDialog}
+        onConfirm={handlePasswordSubmit}
+       />
     </div>
   );
 }
