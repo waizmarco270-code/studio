@@ -59,7 +59,7 @@ const implementAIIdentityFlow = ai.defineFlow(
     outputSchema: ImplementAIIdentityOutputSchema,
   },
   async input => {
-    const {output} = await prompt({input});
+    const {output} = await prompt(input);
     return output!;
   }
 );
