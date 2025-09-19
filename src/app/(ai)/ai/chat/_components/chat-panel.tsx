@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useEffect, useRef } from "react";
 import {
   Paperclip,
   Send,
@@ -10,6 +10,7 @@ import {
   Loader2,
   Mic,
   Moon,
+  MicOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,8 +25,23 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 type Message = {
   role: "user" | "assistant";
-  content: string;
+  content: string | React.ReactNode;
 };
+
+const examplePrompts = [
+  "Explain quantum computing in simple terms",
+  "Got any creative ideas for a 10-year-old’s birthday?",
+  "How do I make an HTTP request in Javascript?",
+  "What's the meaning of life?",
+];
+
+// Extend the window object to include webkitSpeechRecognition
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 export function ChatPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -34,22 +50,82 @@ export function ChatPanel() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isPending) return;
+  useEffect(() => {
+    // Initialize SpeechRecognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        handleSendMessage(transcript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error', event.error);
+        toast({
+          variant: "destructive",
+          title: "Voice Error",
+          description: `An error occurred with speech recognition: ${event.error}`,
+        });
+        setIsListening(false);
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    // Send initial welcome message
+    setMessages([
+      {
+        role: "assistant",
+        content: "Hello! I am Marco AI, your MindMate companion. How can I help you today?"
+      }
+    ])
+  }, [toast]);
+
+  const handleMicClick = () => {
+    if (!recognitionRef.current) {
+      toast({
+          variant: "destructive",
+          title: "Not Supported",
+          description: "Your browser does not support voice recognition.",
+        });
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+
+  const handleSendMessage = (text: string) => {
+    if (!text.trim() || isPending) return;
 
     const newMessages: Message[] = [
       ...messages,
-      { role: "user", content: input },
+      { role: "user", content: text },
     ];
     setMessages(newMessages);
-    const currentInput = input;
     setInput("");
 
     startTransition(async () => {
       try {
-        const result = await implementAIIdentity(currentInput);
+        const result = await implementAIIdentity(text);
         setMessages((prev) => [
           ...prev,
           { role: "assistant", content: result },
@@ -69,6 +145,11 @@ export function ChatPanel() {
     });
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSendMessage(input);
+  }
+
   const handleFileUploadClick = () => {
     setDialogOpen(true);
   };
@@ -76,6 +157,11 @@ export function ChatPanel() {
   const handleFileConfirm = () => {
     fileInputRef.current?.click();
   };
+  
+  const handleExamplePrompt = (prompt: string) => {
+    setInput(prompt);
+    handleSendMessage(prompt);
+  }
 
   return (
     <div className="relative flex h-screen w-full flex-col items-center bg-background text-foreground">
@@ -84,30 +170,33 @@ export function ChatPanel() {
       </header>
 
       <div className="flex flex-1 flex-col w-full max-w-3xl pt-16 pb-32">
-        {messages.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
-             <div className="h-48 w-48">
-              <AvatarCanvas isAnimated={true} />
-            </div>
-            <h1 className="mt-6 text-3xl font-bold tracking-tighter">
-              How can I help you today?
-            </h1>
+        <ScrollArea className="flex-1 px-4">
+          <div className="space-y-6">
+            {messages.map((message, index) => (
+              <ChatMessage key={index} {...message} />
+            ))}
+             {messages.length <= 1 && (
+                <div className="flex flex-col items-center justify-center text-center pt-16">
+                    <div className="h-48 w-48">
+                        <AvatarCanvas isAnimated={true} />
+                    </div>
+                     <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
+                        {examplePrompts.map((prompt, i) => (
+                            <Button key={i} variant="outline" className="text-left h-auto whitespace-normal" onClick={() => handleExamplePrompt(prompt)}>
+                                {prompt}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {isPending && (
+              <ChatMessage
+                role="assistant"
+                content={<Loader2 className="h-5 w-5 animate-spin" />}
+              />
+            )}
           </div>
-        ) : (
-          <ScrollArea className="flex-1 px-4">
-            <div className="space-y-6">
-              {messages.map((message, index) => (
-                <ChatMessage key={index} {...message} />
-              ))}
-              {isPending && (
-                <ChatMessage
-                  role="assistant"
-                  content={<Loader2 className="h-5 w-5 animate-spin" />}
-                />
-              )}
-            </div>
-          </ScrollArea>
-        )}
+        </ScrollArea>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-background/50 backdrop-blur-sm">
@@ -127,7 +216,7 @@ export function ChatPanel() {
               </Button>
           </div>
           <form
-            onSubmit={handleSendMessage}
+            onSubmit={handleSubmit}
             className="relative flex items-center"
           >
              <Textarea
@@ -137,7 +226,7 @@ export function ChatPanel() {
               className="min-h-[50px] w-full resize-none rounded-2xl border-2 border-border bg-card pr-24 pl-12 shadow-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
-                  handleSendMessage(e);
+                  handleSubmit(e);
                 }
               }}
               disabled={isPending}
@@ -147,11 +236,11 @@ export function ChatPanel() {
               variant="ghost"
               size="icon"
               className="absolute left-3 top-1/2 -translate-y-1/2"
-              onClick={handleFileUploadClick}
+              onClick={handleMicClick}
               disabled={isPending}
             >
-              <Paperclip className="h-5 w-5" />
-              <span className="sr-only">Upload file</span>
+              {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
+              <span className="sr-only">Toggle voice recognition</span>
             </Button>
             <input type="file" ref={fileInputRef} className="hidden" />
 
