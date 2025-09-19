@@ -26,9 +26,9 @@ import { FileUploadDialog } from "./file-upload-dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar";
-import { PasswordDialog } from "./password-dialog";
 import { Card } from "@/components/ui/card";
 import { useTypingEffect } from "@/hooks/use-typing-effect";
+import { TokenEntry } from "./token-entry";
 
 type Message = {
   role: "user" | "assistant";
@@ -48,9 +48,6 @@ const placeholderPrompts = [
     "Help me brainstorm ideas...",
     "Translate a phrase...",
 ];
-
-const REQUEST_LIMIT = 5;
-const UNLOCK_PASSWORD = "marcoaiuc";
 
 const initialMessages: Message[] = [
     {
@@ -84,15 +81,20 @@ export function ChatPanel() {
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [fileSummary, setFileSummary] = useState<{ name: string; summary: string | null; progress: string | null } | null>(null);
   const { toggleSidebar } = useSidebar();
-  const [requestCount, setRequestCount] = useState(0);
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const placeholder = useTypingEffect(placeholderPrompts, 100, 2000);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
+        const accessGranted = localStorage.getItem('marco-ai-access-granted');
+        if (accessGranted === 'true') {
+          setIsVerified(true);
+        } else {
+          setIsVerified(false);
+        }
+
         const storedMessages = localStorage.getItem('chatMessages');
         if (storedMessages) {
           const parsedMessages = JSON.parse(storedMessages);
@@ -100,18 +102,9 @@ export function ChatPanel() {
             setMessages(parsedMessages);
           }
         }
-        
-        const unlockedStatus = localStorage.getItem('isUnlocked');
-        if (unlockedStatus === 'true') {
-          setIsUnlocked(true);
-        } else {
-          const storedCount = localStorage.getItem('requestCount');
-          if (storedCount) {
-            setRequestCount(parseInt(storedCount, 10));
-          }
-        }
       } catch (error) {
         console.error("Could not access localStorage.", error);
+        setIsVerified(false);
       } finally {
         setInitialLoad(false);
       }
@@ -191,12 +184,7 @@ export function ChatPanel() {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!text.trim() || isPending) return;
-
-     if (!isUnlocked && requestCount >= REQUEST_LIMIT) {
-      setShowPasswordDialog(true);
-      return;
-    }
+    if (!text.trim() || isPending || !isVerified) return;
 
     const newUserMessage: Message = { role: "user", content: text };
     const newMessages = [...messages, newUserMessage];
@@ -210,16 +198,7 @@ export function ChatPanel() {
             const utterance = new SpeechSynthesisUtterance(result);
             window.speechSynthesis.speak(utterance);
         }
-        const newCount = requestCount + 1;
-        setRequestCount(newCount);
-        if (!isUnlocked) {
-          try {
-            localStorage.setItem('requestCount', newCount.toString());
-          } catch (error) {
-            console.error("Could not access localStorage.", error);
-          }
-        }
-
+        
         const aiMessage: Message = { role: "assistant", content: result };
         setMessages([...newMessages, aiMessage]);
 
@@ -301,30 +280,35 @@ export function ChatPanel() {
     });
   };
 
-  const handlePasswordSubmit = (password: string) => {
-    if (password === UNLOCK_PASSWORD) {
-      setIsUnlocked(true);
-      try {
-        localStorage.setItem('isUnlocked', 'true');
-        localStorage.removeItem('requestCount');
-      } catch (error) {
-        console.error("Could not access localStorage.", error);
-      }
-      setShowPasswordDialog(false);
+  const onVerificationSuccess = () => {
+    try {
+      localStorage.setItem("marco-ai-access-granted", "true");
+      setIsVerified(true);
       toast({
-        title: "Success",
-        description: "You have unlocked unlimited requests.",
+        title: "Access Granted",
+        description: "Welcome to Marco AI!",
       });
-      handleSendMessage(input);
-    } else {
-      toast({
+    } catch (error) {
+      console.error("Could not access localStorage.", error);
+       toast({
         variant: "destructive",
-        title: "Incorrect Password",
-        description: "Please try again.",
+        title: "Storage Error",
+        description: "Could not save access status. Please enable cookies/site data.",
       });
     }
-  };
+  }
 
+  if (isVerified === null) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center bg-background">
+              <Loader2 className="h-10 w-10 animate-spin" />
+          </div>
+      )
+  }
+
+  if (!isVerified) {
+      return <TokenEntry onVerificationSuccess={onVerificationSuccess} />
+  }
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
@@ -429,12 +413,6 @@ export function ChatPanel() {
 
       <footer className="w-full shrink-0 border-t bg-background">
         <div className="mx-auto w-full max-w-3xl p-4">
-          {!isUnlocked && requestCount >= REQUEST_LIMIT && (
-            <div className="mb-2 text-center text-sm font-medium text-destructive">
-              You have reached your message limit. Enter the password to
-              continue.
-            </div>
-          )}
           <form
             onSubmit={handleSubmit}
             className="flex w-full items-start gap-2"
@@ -511,11 +489,6 @@ export function ChatPanel() {
         onOpenChange={setShowUploadDialog}
         onConfirm={handleUploadConfirm}
       />
-      <PasswordDialog
-        open={showPasswordDialog}
-        onOpenChange={setShowPasswordDialog}
-        onConfirm={handlePasswordSubmit}
-       />
     </div>
   );
 }
