@@ -1,26 +1,20 @@
 "use client";
 import React, { useState, useTransition, useEffect, useRef } from "react";
 import {
-  Paperclip,
   Send,
-  Bot,
-  BrainCircuit,
-  GraduationCap,
-  Sparkles,
   Loader2,
   Mic,
-  Moon,
   MicOff,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./chat-message";
-import { FileUploadDialog } from "./file-upload-dialog";
 import { implementAIIdentity } from "@/ai/flows/implement-ai-identity";
 import { useToast } from "@/hooks/use-toast";
 import { AvatarCanvas } from "../../avatar/_components/avatar-canvas";
-import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type Message = {
@@ -46,12 +40,12 @@ declare global {
 export function ChatPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isDialogOpen, setDialogOpen] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [isListening, setIsListening] = useState(false);
+  const [isTtsEnabled, setIsTtsEnabled] = useState(true);
   const recognitionRef = useRef<any>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Initialize SpeechRecognition
@@ -66,6 +60,7 @@ export function ChatPanel() {
         const transcript = event.results[0][0].transcript;
         setInput(transcript);
         handleSendMessage(transcript);
+        setIsListening(false);
       };
 
       recognition.onerror = (event: any) => {
@@ -93,6 +88,15 @@ export function ChatPanel() {
       }
     ])
   }, [toast]);
+  
+   useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({
+        top: scrollAreaRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages]);
 
   const handleMicClick = () => {
     if (!recognitionRef.current) {
@@ -126,6 +130,10 @@ export function ChatPanel() {
     startTransition(async () => {
       try {
         const result = await implementAIIdentity(text);
+        if (isTtsEnabled) {
+            const utterance = new SpeechSynthesisUtterance(result);
+            window.speechSynthesis.speak(utterance);
+        }
         setMessages((prev) => [
           ...prev,
           { role: "assistant", content: result },
@@ -140,7 +148,8 @@ export function ChatPanel() {
             ? "The Gemini API Key is missing. Please add it in the Settings page."
             : errorMessage,
         });
-        setMessages(newMessages); // Restore previous messages on error
+         // On error, remove the user's message to allow them to try again.
+        setMessages(messages);
       }
     });
   };
@@ -149,14 +158,6 @@ export function ChatPanel() {
     e.preventDefault();
     handleSendMessage(input);
   }
-
-  const handleFileUploadClick = () => {
-    setDialogOpen(true);
-  };
-
-  const handleFileConfirm = () => {
-    fileInputRef.current?.click();
-  };
   
   const handleExamplePrompt = (prompt: string) => {
     setInput(prompt);
@@ -165,21 +166,28 @@ export function ChatPanel() {
 
   return (
     <div className="relative flex h-screen w-full flex-col items-center bg-background text-foreground">
-      <header className="absolute top-0 right-0 p-4">
+      <header className="absolute top-4 right-4 flex items-center gap-2">
+         <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsTtsEnabled(!isTtsEnabled)}
+          >
+            {isTtsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+            <span className="sr-only">Toggle TTS</span>
+          </Button>
         <ThemeToggle />
       </header>
 
       <div className="flex flex-1 flex-col w-full max-w-3xl pt-16 pb-32">
-        <ScrollArea className="flex-1 px-4">
+        <ScrollArea className="flex-1 px-4" ref={scrollAreaRef}>
           <div className="space-y-6">
-            {messages.map((message, index) => (
-              <ChatMessage key={index} {...message} />
-            ))}
-             {messages.length <= 1 && (
-                <div className="flex flex-col items-center justify-center text-center pt-16">
+            {messages.length === 1 ? (
+                 <div className="flex flex-col items-center justify-center text-center pt-16">
                     <div className="h-48 w-48">
                         <AvatarCanvas isAnimated={true} />
                     </div>
+                     <h1 className="mt-4 text-3xl font-bold">How can I help you today?</h1>
                      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
                         {examplePrompts.map((prompt, i) => (
                             <Button key={i} variant="outline" className="text-left h-auto whitespace-normal" onClick={() => handleExamplePrompt(prompt)}>
@@ -188,6 +196,10 @@ export function ChatPanel() {
                         ))}
                     </div>
                 </div>
+            ) : (
+                messages.map((message, index) => (
+                    <ChatMessage key={index} {...message} />
+                ))
             )}
             {isPending && (
               <ChatMessage
@@ -201,20 +213,6 @@ export function ChatPanel() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-background/50 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-3xl p-4 space-y-4">
-          <div className="flex justify-center gap-2">
-             <Button variant="outline" size="sm" className="rounded-full">
-                <GraduationCap className="mr-2 h-4 w-4" /> Study
-              </Button>
-               <Button variant="outline" size="sm" className="rounded-full">
-                <BrainCircuit className="mr-2 h-4 w-4" /> Exam
-              </Button>
-               <Button variant="outline" size="sm" className="rounded-full">
-                <Bot className="mr-2 h-4 w-4" /> General
-              </Button>
-               <Button variant="outline" size="sm" className="rounded-full">
-                <Sparkles className="mr-2 h-4 w-4" /> Fun
-              </Button>
-          </div>
           <form
             onSubmit={handleSubmit}
             className="relative flex items-center"
@@ -242,8 +240,7 @@ export function ChatPanel() {
               {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
               <span className="sr-only">Toggle voice recognition</span>
             </Button>
-            <input type="file" ref={fileInputRef} className="hidden" />
-
+            
             <Button
               type="submit"
               size="icon"
@@ -259,15 +256,10 @@ export function ChatPanel() {
             </Button>
           </form>
            <p className="text-center text-xs text-muted-foreground">
-             MarcoAI can make mistakes. Consider checking important information.
+             MarcoAI may display inaccurate info, including about people, so double-check its responses.
             </p>
         </div>
       </div>
-      <FileUploadDialog
-        open={isDialogOpen}
-        onOpenChange={setDialogOpen}
-        onConfirm={handleFileConfirm}
-      />
     </div>
   );
 }
