@@ -3,6 +3,7 @@
 import { Bot, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -34,7 +35,15 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
             : "bg-muted text-muted-foreground"
         )}
       >
-        {typeof content === 'string' ? <p className="text-sm">{content}</p> : content}
+        {typeof content === 'string' ? (
+          <ReactMarkdown
+            className="prose dark:prose-invert prose-p:leading-relaxed prose-p:m-0 prose-headings:m-0 prose-ul:m-0 prose-ol:m-0"
+          >
+            {content}
+          </ReactMarkdown>
+        ) : (
+           content
+        )}
       </div>
       {isUser && (
         <Avatar className="h-8 w-8 border">
