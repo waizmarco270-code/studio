@@ -52,6 +52,17 @@ const placeholderPrompts = [
 const REQUEST_LIMIT = 5;
 const UNLOCK_PASSWORD = "marcoaiuc";
 
+const initialMessages: Message[] = [
+    {
+      role: "assistant",
+      content: "Hey 👋 Welcome MindMate Users",
+    },
+    {
+      role: "assistant",
+      content: "Hello! I am Marco AI. How can I help you today?",
+    },
+];
+
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -78,23 +89,12 @@ export function ChatPanel() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const placeholder = useTypingEffect(placeholderPrompts, 100, 50);
 
-  const initialMessages: Message[] = [
-    {
-      role: "assistant",
-      content: "Hey 👋 Welcome MindMate Users",
-    },
-    {
-      role: "assistant",
-      content: "Hello! I am Marco AI. How can I help you today?",
-    },
-  ];
-
   useEffect(() => {
     try {
       const storedMessages = localStorage.getItem('chatMessages');
       if (storedMessages) {
         const parsedMessages = JSON.parse(storedMessages);
-        if (parsedMessages.length > 0) {
+        if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
           setMessages(parsedMessages);
         } else {
           setMessages(initialMessages);
@@ -118,8 +118,11 @@ export function ChatPanel() {
 
   useEffect(() => {
     try {
-      if (messages.length > 0) {
+      // Don't save the initial placeholder messages
+      if (messages.length > initialMessages.length) {
         localStorage.setItem('chatMessages', JSON.stringify(messages));
+      } else if (messages.length === 0) {
+        localStorage.removeItem('chatMessages');
       }
     } catch (error) {
       console.error("Could not access localStorage.", error);
@@ -285,7 +288,7 @@ export function ChatPanel() {
     fileInputRef.current?.click();
   };
   
-  const handleClearHistory = async () => {
+  const handleClearHistory = () => {
     setMessages(initialMessages);
     setFileSummary(null);
      try {
@@ -366,7 +369,7 @@ export function ChatPanel() {
       <main className="flex-1 overflow-y-auto">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
           <div className="px-4 py-6 space-y-6 max-w-3xl mx-auto">
-            {messages.length <= 2 && !fileSummary ? (
+            {messages.length <= initialMessages.length && !fileSummary ? (
                  <div className="flex flex-col items-center justify-center text-center pt-10 md:pt-16">
                     <div className="h-32 w-32 mb-4">
                         <AvatarCanvas isAnimated={true} />
