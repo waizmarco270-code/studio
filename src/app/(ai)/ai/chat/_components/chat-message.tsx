@@ -31,8 +31,8 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
         className={cn(
           "max-w-[75%] rounded-lg px-4 py-3",
           isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground"
+            ? "bg-muted text-muted-foreground"
+            : "bg-primary text-primary-foreground"
         )}
       >
         {typeof content === 'string' ? (
