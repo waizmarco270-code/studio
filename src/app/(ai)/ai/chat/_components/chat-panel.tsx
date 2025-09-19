@@ -63,13 +63,16 @@ export function ChatPanel() {
           { role: "assistant", content: result },
         ]);
       } catch (error) {
+         const errorMessage = (error as Error)?.message || "Something went wrong. Please try again.";
          toast({
           variant: "destructive",
           title: "Error",
-          description: "Something went wrong. Please try again.",
+          description: errorMessage.includes('API key') 
+            ? "The Gemini API Key is missing. Please add it in the Settings page."
+            : errorMessage,
         });
-        // Restore user input if AI fails
-        setMessages(newMessages); 
+        // Restore user input on failure
+        setMessages(newMessages);
       }
     });
   };
