@@ -1,6 +1,7 @@
 
 "use client";
 import React, { useState, useTransition, useEffect, useRef } from "react";
+import Image from "next/image";
 import {
   Send,
   Loader2,
@@ -11,7 +12,6 @@ import {
   Paperclip,
   Trash2,
   PanelLeft,
-  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,7 +71,7 @@ declare global {
 }
 
 export function ChatPanel() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -87,44 +87,46 @@ export function ChatPanel() {
   const [requestCount, setRequestCount] = useState(0);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const placeholder = useTypingEffect(placeholderPrompts, 100, 50);
+  const placeholder = useTypingEffect(placeholderPrompts, 100, 2000);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   useEffect(() => {
-    try {
-      const storedMessages = localStorage.getItem('chatMessages');
-      if (storedMessages) {
-        const parsedMessages = JSON.parse(storedMessages);
-        if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-          setMessages(parsedMessages);
-        } else {
-          setMessages(initialMessages);
+    if (typeof window !== 'undefined') {
+      try {
+        const storedMessages = localStorage.getItem('chatMessages');
+        if (storedMessages) {
+          const parsedMessages = JSON.parse(storedMessages);
+          if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+            setMessages(parsedMessages);
+          }
         }
-      } else {
-        setMessages(initialMessages);
+        
+        const unlockedStatus = localStorage.getItem('isUnlocked');
+        if (unlockedStatus === 'true') {
+          setIsUnlocked(true);
+        } else {
+          const storedCount = localStorage.getItem('requestCount');
+          if (storedCount) {
+            setRequestCount(parseInt(storedCount, 10));
+          }
+        }
+      } catch (error) {
+        console.error("Could not access localStorage.", error);
+      } finally {
+        setInitialLoad(false);
       }
-
-      const storedCount = localStorage.getItem('requestCount');
-      const unlockedStatus = localStorage.getItem('isUnlocked');
-      if (unlockedStatus === 'true') {
-        setIsUnlocked(true);
-      } else if (storedCount) {
-        setRequestCount(parseInt(storedCount, 10));
-      }
-    } catch (error) {
-      console.error("Could not access localStorage.", error);
-       setMessages(initialMessages);
     }
   }, []);
 
   useEffect(() => {
-    try {
-      if (messages.length > 0 && messages.length > initialMessages.length) {
-         localStorage.setItem('chatMessages', JSON.stringify(messages));
+    if (!initialLoad && messages.length > 0) {
+      try {
+        localStorage.setItem('chatMessages', JSON.stringify(messages));
+      } catch (error) {
+        console.error("Could not access localStorage.", error);
       }
-    } catch (error) {
-      console.error("Could not access localStorage.", error);
     }
-  }, [messages]);
+  }, [messages, initialLoad]);
 
 
   useEffect(() => {
@@ -288,8 +290,8 @@ export function ChatPanel() {
   const handleClearHistory = () => {
     setMessages(initialMessages);
     setFileSummary(null);
-     try {
-       localStorage.removeItem('chatMessages');
+    try {
+      localStorage.removeItem('chatMessages');
     } catch (error) {
       console.error("Could not access localStorage.", error);
     }
@@ -337,6 +339,10 @@ export function ChatPanel() {
               <PanelLeft />
               <span className="sr-only">Toggle Sidebar</span>
             </Button>
+            <div className="flex items-center gap-2">
+              <Image src="/logo.svg" alt="MindMate Logo" width={32} height={32} />
+              <span className="font-semibold text-lg hidden md:block">MindMate</span>
+            </div>
          </div>
          <div className="flex items-center gap-2">
           <Button
@@ -430,7 +436,7 @@ export function ChatPanel() {
             )}
             <form
               onSubmit={handleSubmit}
-              className="flex w-full items-center gap-2"
+              className="flex w-full items-start gap-2"
             >
               <div className="relative flex-1">
                  <Textarea
