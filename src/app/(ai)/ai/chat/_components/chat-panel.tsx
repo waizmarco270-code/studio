@@ -52,12 +52,7 @@ declare global {
 }
 
 export function ChatPanel() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hello! I am Marco AI. How can I help you today?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -73,6 +68,49 @@ export function ChatPanel() {
   const [requestCount, setRequestCount] = useState(0);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedMessages = localStorage.getItem('chatMessages');
+      if (storedMessages) {
+        setMessages(JSON.parse(storedMessages));
+      } else {
+        setMessages([
+          {
+            role: "assistant",
+            content: "Hello! I am Marco AI. How can I help you today?",
+          },
+        ]);
+      }
+
+      const storedCount = localStorage.getItem('requestCount');
+      const unlockedStatus = localStorage.getItem('isUnlocked');
+      if (unlockedStatus === 'true') {
+        setIsUnlocked(true);
+      } else if (storedCount) {
+        setRequestCount(parseInt(storedCount, 10));
+      }
+    } catch (error) {
+      console.error("Could not access localStorage.", error);
+       setMessages([
+          {
+            role: "assistant",
+            content: "Hello! I am Marco AI. How can I help you today?",
+          },
+        ]);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (messages.length > 0) {
+        localStorage.setItem('chatMessages', JSON.stringify(messages));
+      }
+    } catch (error) {
+      console.error("Could not access localStorage.", error);
+    }
+  }, [messages]);
+
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -116,20 +154,6 @@ export function ChatPanel() {
       });
     }
   }, [messages, fileSummary]);
-
-  useEffect(() => {
-    try {
-      const storedCount = localStorage.getItem('requestCount');
-      const unlockedStatus = localStorage.getItem('isUnlocked');
-      if (unlockedStatus === 'true') {
-        setIsUnlocked(true);
-      } else if (storedCount) {
-        setRequestCount(parseInt(storedCount, 10));
-      }
-    } catch (error) {
-      console.error("Could not access localStorage.", error);
-    }
-  }, []);
 
   const handleMicClick = () => {
     if (!recognitionRef.current) {
@@ -193,7 +217,6 @@ export function ChatPanel() {
             : errorMessage,
         });
         
-        // This is correct: it removes the user message if the API call fails
         setMessages(newMessages.slice(0, -1)); 
       }
     });
@@ -248,13 +271,17 @@ export function ChatPanel() {
   };
   
   const handleClearHistory = async () => {
-    setMessages([
-        {
-          role: "assistant",
-          content: "Hello! I am Marco AI. How can I help you today?",
-        },
-      ]);
+    const initialMessage = {
+      role: "assistant" as const,
+      content: "Hello! I am Marco AI. How can I help you today?",
+    };
+    setMessages([initialMessage]);
     setFileSummary(null);
+     try {
+       localStorage.removeItem('chatMessages');
+    } catch (error) {
+      console.error("Could not access localStorage.", error);
+    }
     toast({
         title: "Chat Cleared",
         description: "The current conversation has been removed.",
@@ -338,7 +365,7 @@ export function ChatPanel() {
                         {examplePrompts.map((prompt, i) => (
                              <Card 
                                 key={i}
-                                className="p-4 flex items-center justify-center text-center cursor-pointer hover:bg-accent transition-colors"
+                                className="p-4 flex items-center justify-center text-center cursor-pointer hover:bg-accent transition-colors rounded-xl"
                                 onClick={() => handleExamplePrompt(prompt)}
                             >
                                 <p className="text-sm font-medium">{prompt}</p>
@@ -383,7 +410,7 @@ export function ChatPanel() {
         </ScrollArea>
       </main>
 
-       <footer className="w-full shrink-0 bg-background border-t">
+       <footer className="w-full shrink-0 border-t bg-background">
         <div className="mx-auto w-full max-w-3xl p-4 space-y-3">
             {!isUnlocked && requestCount >= REQUEST_LIMIT && (
               <div className="text-center text-sm text-destructive font-medium">
@@ -394,30 +421,12 @@ export function ChatPanel() {
               onSubmit={handleSubmit}
               className="relative flex w-full items-center"
             >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-muted-foreground hover:text-foreground"
-                  onClick={handleFileButtonClick}
-                  disabled={isPending}
-                >
-                  <ImageIcon className="h-6 w-6" />
-                  <span className="sr-only">Upload file</span>
-              </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-            
               <div className="relative flex-1">
                  <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask anything..."
-                    className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-5 pr-16 shadow-sm"
+                    className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-12 pr-24 shadow-sm"
                     onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                         handleSubmit(e);
@@ -429,7 +438,24 @@ export function ChatPanel() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-9 top-1/2 -translate-y-1/2 shrink-0 text-muted-foreground hover:text-foreground"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                    onClick={handleFileButtonClick}
+                    disabled={isPending}
+                  >
+                    <Paperclip className="h-5 w-5" />
+                    <span className="sr-only">Upload file</span>
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                 <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-16 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
                     onClick={handleMicClick}
                     disabled={isPending}
                     >
