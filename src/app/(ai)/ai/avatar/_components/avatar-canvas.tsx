@@ -27,7 +27,7 @@ export function AvatarCanvas({ isAnimated }: AvatarCanvasProps) {
       0.1,
       1000
     );
-    camera.position.z = 250;
+    camera.position.z = 220; // Moved camera closer
 
     // Renderer
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -41,23 +41,27 @@ export function AvatarCanvas({ isAnimated }: AvatarCanvasProps) {
     const positions = new Float32Array(particleCount * 3);
     const initialPositions = new Float32Array(particleCount * 3);
 
+    const radius = 120; // Increased radius for a larger sphere
+
     for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3;
         
-        // Distribute points evenly on a sphere
-        const phi = Math.acos(-1 + (2 * i) / particleCount);
-        const theta = Math.sqrt(particleCount * Math.PI) * phi;
-        
-        const x = 100 * Math.cos(theta) * Math.sin(phi);
-        const y = 100 * Math.sin(theta) * Math.sin(phi);
-        const z = 100 * Math.cos(phi);
+        // Distribute points evenly on a sphere using Fibonacci lattice for better distribution
+        const phi = Math.PI * (3 - Math.sqrt(5)); // Golden angle in radians
+        const y = 1 - (i / (particleCount - 1)) * 2; // y goes from 1 to -1
+        const r = Math.sqrt(1 - y * y); // radius at y
+
+        const theta = phi * i;
+
+        const x = Math.cos(theta) * r * radius;
+        const z = Math.sin(theta) * r * radius;
         
         positions[i3] = x;
-        positions[i3 + 1] = y;
+        positions[i3 + 1] = y * radius;
         positions[i3 + 2] = z;
 
         initialPositions[i3] = x;
-        initialPositions[i3 + 1] = y;
+        initialPositions[i3 + 1] = y * radius;
         initialPositions[i3 + 2] = z;
     }
 
@@ -66,8 +70,8 @@ export function AvatarCanvas({ isAnimated }: AvatarCanvasProps) {
 
     // Particle Material
     const particleMaterial = new THREE.PointsMaterial({
-      color: theme === 'dark' ? 0xffffff : 0x888888,
-      size: 1.2,
+      color: theme === 'dark' ? 0xffffff : 0x666666,
+      size: 1.5,
       sizeAttenuation: true,
       alphaTest: 0.5,
       transparent: true
@@ -102,6 +106,9 @@ export function AvatarCanvas({ isAnimated }: AvatarCanvasProps) {
 
     // Animation
     const clock = new THREE.Clock();
+    const raycaster = new THREE.Raycaster();
+    const mouse3D = new THREE.Vector3();
+
     const animate = () => {
       requestAnimationFrame(animate);
       const elapsedTime = clock.getElapsedTime();
@@ -113,26 +120,26 @@ export function AvatarCanvas({ isAnimated }: AvatarCanvasProps) {
       const posAttr = particles.getAttribute('position') as THREE.BufferAttribute;
       const initialPosAttr = particles.getAttribute('initialPosition') as THREE.BufferAttribute;
       
-      const raycaster = new THREE.Raycaster();
+      // Update mouse3D position only when mouse moves
       raycaster.setFromCamera(mouse, camera);
-      const mouse3D = raycaster.ray.origin.clone().add(raycaster.ray.direction.multiplyScalar(200));
+      raycaster.ray.at(200, mouse3D)
 
       for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3;
-        const vertex = new THREE.Vector3(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i));
-        const initialVertex = new THREE.Vector3(initialPosAttr.getX(i), initialPosAttr.getY(i), initialPosAttr.getZ(i));
+        const vertex = new THREE.Vector3().fromBufferAttribute(posAttr, i);
+        const initialVertex = new THREE.Vector3().fromBufferAttribute(initialPosAttr, i);
         
         const dist = vertex.distanceTo(mouse3D);
-        const maxDist = 50;
+        const maxDist = 60; // Adjusted for larger sphere
         
         if (dist < maxDist) {
             const force = (maxDist - dist) / maxDist;
-            const dir = vertex.clone().sub(mouse3D).normalize().multiplyScalar(force * 5); // Repel
+            const dir = vertex.clone().sub(mouse3D).normalize().multiplyScalar(force * 3); // Reduced repel force for subtlety
             vertex.add(dir);
         }
 
         // Return to initial position
-        vertex.lerp(initialVertex, 0.03);
+        vertex.lerp(initialVertex, 0.04); // Smoother return
 
         posAttr.setXYZ(i, vertex.x, vertex.y, vertex.z);
       }
