@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
-  content: string;
+  content: string | React.ReactNode;
 }
 
 export function ChatMessage({ role, content }: ChatMessageProps) {
@@ -34,7 +34,7 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
             : "bg-muted text-muted-foreground"
         )}
       >
-        <p className="text-sm">{content}</p>
+        {typeof content === 'string' ? <p className="text-sm">{content}</p> : content}
       </div>
       {isUser && (
         <Avatar className="h-8 w-8 border">

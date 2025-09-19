@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import {
   Paperclip,
   Send,
@@ -7,6 +7,7 @@ import {
   BrainCircuit,
   GraduationCap,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +22,8 @@ import { ChatMessage } from "./chat-message";
 import { PromptTemplates } from "./prompt-templates";
 import { FileUploadDialog } from "./file-upload-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { implementAIIdentity } from "@/ai/flows/implement-ai-identity";
+import { useToast } from "@/hooks/use-toast";
 
 type Message = {
   role: "user" | "assistant";
@@ -40,22 +43,35 @@ export function ChatPanel() {
   const [input, setInput] = useState("");
   const [isDialogOpen, setDialogOpen] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isPending) return;
 
     const newMessages: Message[] = [...messages, { role: "user", content: input }];
     setMessages(newMessages);
+    const currentInput = input;
     setInput("");
 
-    // Simulate AI response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "This is a simulated response." },
-      ]);
-    }, 1000);
+    startTransition(async () => {
+      try {
+        const result = await implementAIIdentity(currentInput);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: result },
+        ]);
+      } catch (error) {
+         toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Something went wrong. Please try again.",
+        });
+        // Restore user input if AI fails
+        setMessages(newMessages); 
+      }
+    });
   };
   
   const handleFileUploadClick = () => {
@@ -105,6 +121,14 @@ export function ChatPanel() {
                   {messages.map((message, index) => (
                     <ChatMessage key={index} {...message} />
                   ))}
+                  {isPending && (
+                    <ChatMessage
+                      role="assistant"
+                      content={
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      }
+                    />
+                  )}
                 </div>
               </ScrollArea>
               <div className="border-t p-4">
@@ -122,6 +146,7 @@ export function ChatPanel() {
                         handleSendMessage(e);
                       }
                     }}
+                    disabled={isPending}
                   />
                    <Button
                     type="button"
@@ -129,6 +154,7 @@ export function ChatPanel() {
                     size="icon"
                     className="absolute right-11 top-1/2 -translate-y-1/2"
                     onClick={handleFileUploadClick}
+                    disabled={isPending}
                   >
                     <Paperclip className="h-5 w-5" />
                     <span className="sr-only">Upload file</span>
@@ -138,8 +164,9 @@ export function ChatPanel() {
                     type="submit"
                     size="icon"
                     className="absolute right-1 top-1/2 -translate-y-1/2"
+                    disabled={isPending}
                   >
-                    <Send className="h-5 w-5" />
+                    {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                     <span className="sr-only">Send</span>
                   </Button>
                 </form>
