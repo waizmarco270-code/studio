@@ -8,6 +8,7 @@ import {
   Volume2,
   VolumeX,
   Paperclip,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -56,6 +57,39 @@ export function ChatPanel() {
   const [fileSummary, setFileSummary] = useState<{ name: string; summary: string | null; progress: string | null } | null>(null);
 
   useEffect(() => {
+    try {
+      const savedHistory = JSON.parse(localStorage.getItem("chatHistory") || "[]");
+      if (savedHistory.length > 0) {
+        setMessages(savedHistory);
+      } else {
+        setMessages([
+          {
+            role: "assistant",
+            content: "Hello! I am Marco AI. How can I help you today?"
+          }
+        ]);
+      }
+    } catch (error) {
+       setMessages([
+          {
+            role: "assistant",
+            content: "Hello! I am Marco AI. How can I help you today?"
+          }
+        ]);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      // Store only the last 5 messages
+      localStorage.setItem("chatHistory", JSON.stringify(messages.slice(-5)));
+    } catch (error) {
+      console.error("Failed to save chat history:", error);
+    }
+  }, [messages]);
+
+
+  useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
@@ -87,12 +121,6 @@ export function ChatPanel() {
       recognitionRef.current = recognition;
     }
 
-    setMessages([
-      {
-        role: "assistant",
-        content: "Hello! I am Marco AI, your MindMate companion. How can I help you today?"
-      }
-    ]);
   }, [toast]);
   
    useEffect(() => {
@@ -153,7 +181,7 @@ export function ChatPanel() {
             ? "The Gemini API Key is missing. Please add it in the Settings page."
             : errorMessage,
         });
-        setMessages(messages);
+        setMessages((prevMessages) => prevMessages.slice(0, -1)); // Revert user message on error
       }
     });
   };
@@ -205,10 +233,34 @@ export function ChatPanel() {
   const handleFileButtonClick = () => {
     fileInputRef.current?.click();
   };
+  
+  const handleClearHistory = () => {
+    setMessages([
+        {
+            role: "assistant",
+            content: "Hello! I am Marco AI. How can I help you today?"
+        }
+    ]);
+    setFileSummary(null);
+    localStorage.removeItem("chatHistory");
+    toast({
+        title: "Chat History Cleared",
+        description: "Your conversation has been reset.",
+    });
+  };
 
   return (
     <div className="relative flex h-screen w-full flex-col items-center bg-background text-foreground">
       <header className="absolute top-4 right-4 flex items-center gap-2">
+         <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleClearHistory}
+          >
+            <Trash2 className="h-5 w-5" />
+            <span className="sr-only">Clear History</span>
+          </Button>
          <Button
             type="button"
             variant="ghost"
@@ -224,7 +276,7 @@ export function ChatPanel() {
       <div className="flex flex-1 flex-col w-full max-w-3xl pt-16 pb-32">
         <ScrollArea className="flex-1 px-4" ref={scrollAreaRef}>
           <div className="space-y-6">
-            {messages.length === 1 && !fileSummary ? (
+            {messages.length <= 1 && !fileSummary ? (
                  <div className="flex flex-col items-center justify-center text-center pt-16">
                     <div className="h-48 w-48">
                         <AvatarCanvas isAnimated={true} />
@@ -339,7 +391,7 @@ export function ChatPanel() {
               </div>
           </form>
            <p className="text-center text-xs text-muted-foreground">
-             MarcoAI may display inaccurate info, including about people, so double-check its responses.
+             MarcoAI remembers your last 5 conversations — just enough to feel human, but never cluttered. Crafted by WaizMarco, designed for legends.
             </p>
         </div>
       </div>
