@@ -118,11 +118,10 @@ export function ChatPanel() {
 
   useEffect(() => {
     try {
-      // Don't save the initial placeholder messages
-      if (messages.length > initialMessages.length) {
-        localStorage.setItem('chatMessages', JSON.stringify(messages));
-      } else if (messages.length === 0) {
-        localStorage.removeItem('chatMessages');
+      if (messages.length > 0) {
+         localStorage.setItem('chatMessages', JSON.stringify(messages));
+      } else {
+         localStorage.removeItem('chatMessages');
       }
     } catch (error) {
       console.error("Could not access localStorage.", error);
@@ -493,9 +492,6 @@ export function ChatPanel() {
                   <span className="sr-only">Send</span>
                 </Button>
           </form>
-           <p className="text-center text-xs text-muted-foreground">
-             MarcoAI is your companion. Crafted by WaizMarco, designed for legends.
-            </p>
         </div>
       </footer>
       <FileUploadDialog
@@ -511,3 +507,5 @@ export function ChatPanel() {
     </div>
   );
 }
+
+    
