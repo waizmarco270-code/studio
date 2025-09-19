@@ -36,10 +36,10 @@ type Message = {
 };
 
 const examplePrompts = [
-  "Explain quantum computing",
-  "Creative birthday ideas?",
-  "HTTP requests in Javascript",
-  "What's the meaning of life?",
+  "Explain me about MindMate.",
+  "How can I improve my focus?",
+  "Create a study plan for my exams.",
+  "Suggest a morning routine for success.",
 ];
 
 const placeholderPrompts = [
@@ -118,10 +118,8 @@ export function ChatPanel() {
 
   useEffect(() => {
     try {
-      if (messages.length > 0) {
+      if (messages.length > 0 && messages.length > initialMessages.length) {
          localStorage.setItem('chatMessages', JSON.stringify(messages));
-      } else {
-         localStorage.removeItem('chatMessages');
       }
     } catch (error) {
       console.error("Could not access localStorage.", error);
@@ -424,9 +422,9 @@ export function ChatPanel() {
       </main>
 
        <footer className="w-full shrink-0 border-t bg-background">
-        <div className="mx-auto w-full max-w-3xl p-4 space-y-3">
+        <div className="mx-auto w-full max-w-3xl p-4">
             {!isUnlocked && requestCount >= REQUEST_LIMIT && (
-              <div className="text-center text-sm text-destructive font-medium">
+              <div className="text-center text-sm text-destructive font-medium mb-2">
                 You have reached your message limit. Enter the password to continue.
               </div>
             )}
@@ -507,5 +505,3 @@ export function ChatPanel() {
     </div>
   );
 }
-
-    
