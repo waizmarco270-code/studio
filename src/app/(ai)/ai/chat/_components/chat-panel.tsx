@@ -472,7 +472,7 @@ export function ChatPanel() {
                   onClick={handleMicClick}
                   disabled={isPending}
                   >
-                  {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-s" />}
+                  {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
                   <span className="sr-only">Toggle voice recognition</span>
               </Button>
 
