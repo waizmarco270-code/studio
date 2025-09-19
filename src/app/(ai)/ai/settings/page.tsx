@@ -24,6 +24,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { setApiKey } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 
 export default function SettingsPage() {
   const [geminiKey, setGeminiKey] = useState("");
@@ -55,8 +56,9 @@ export default function SettingsPage() {
           <h1 className="font-headline text-2xl font-bold">Settings</h1>
           <p className="text-muted-foreground">Manage your preferences</p>
         </div>
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-4">
           <ThemeToggle />
+          <UserButton />
         </div>
       </div>
 
