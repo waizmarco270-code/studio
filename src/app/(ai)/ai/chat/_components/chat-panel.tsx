@@ -427,74 +427,82 @@ export function ChatPanel() {
         </ScrollArea>
       </main>
 
-       <footer className="w-full shrink-0 border-t bg-background">
+      <footer className="w-full shrink-0 border-t bg-background">
         <div className="mx-auto w-full max-w-3xl p-4">
-            {!isUnlocked && requestCount >= REQUEST_LIMIT && (
-              <div className="text-center text-sm text-destructive font-medium mb-2">
-                You have reached your message limit. Enter the password to continue.
-              </div>
-            )}
-            <form
-              onSubmit={handleSubmit}
-              className="flex w-full items-start gap-2"
-            >
-              <div className="relative flex-1">
-                 <Textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={placeholder}
-                    className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-12 pr-4 shadow-sm"
-                    onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                        handleSubmit(e);
-                    }
-                    }}
-                    disabled={isPending}
-                 />
-                 <Button
+          {!isUnlocked && requestCount >= REQUEST_LIMIT && (
+            <div className="mb-2 text-center text-sm font-medium text-destructive">
+              You have reached your message limit. Enter the password to
+              continue.
+            </div>
+          )}
+          <form
+            onSubmit={handleSubmit}
+            className="flex w-full items-start gap-2"
+          >
+            <div className="relative flex h-auto min-h-12 w-full items-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                onClick={handleFileButtonClick}
+                disabled={isPending}
+              >
+                <Paperclip className="h-5 w-5" />
+                <span className="sr-only">Upload file</span>
+              </Button>
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={placeholder}
+                className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-12 pr-20 shadow-sm"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    handleSubmit(e);
+                  }
+                }}
+                disabled={isPending}
+              />
+              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                {input.trim() || isPending ? (
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary/80"
+                    disabled={isPending || !input.trim()}
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
+                    <span className="sr-only">Send</span>
+                  </Button>
+                ) : (
+                  <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-                    onClick={handleFileButtonClick}
+                    className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                    onClick={handleMicClick}
                     disabled={isPending}
                   >
-                    <Paperclip className="h-5 w-5" />
-                    <span className="sr-only">Upload file</span>
-                </Button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={handleFileSelect}
-                />
+                    {isListening ? (
+                      <MicOff className="h-5 w-5 text-destructive" />
+                    ) : (
+                      <Mic className="h-5 w-5" />
+                    )}
+                    <span className="sr-only">Toggle voice recognition</span>
+                  </Button>
+                )}
               </div>
-
-               <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-                  onClick={handleMicClick}
-                  disabled={isPending}
-                  >
-                  {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
-                  <span className="sr-only">Toggle voice recognition</span>
-              </Button>
-
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary/80"
-                  disabled={isPending || !input.trim()}
-                >
-                  {isPending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Send className="h-5 w-5" />
-                  )}
-                  <span className="sr-only">Send</span>
-                </Button>
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileSelect}
+            />
           </form>
         </div>
       </footer>
