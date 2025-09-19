@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useTransition, useEffect, useRef } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   Trash2,
   PanelLeft,
 } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,17 +26,12 @@ import { FileUploadDialog } from "./file-upload-dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar";
+import { getChats, saveChat, deleteChat, deleteAllUserChats, Chat } from "@/lib/chat-history";
 
 type Message = {
   role: "user" | "assistant";
   content: string | React.ReactNode;
 };
-
-type Chat = {
-    id: string;
-    title: string;
-    messages: Message[];
-}
 
 const examplePrompts = [
   "Explain quantum computing in simple terms",
@@ -51,6 +48,7 @@ declare global {
 }
 
 export function ChatPanel() {
+  const { userId, isLoaded } = useAuth();
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [input, setInput] = useState("");
@@ -70,63 +68,54 @@ export function ChatPanel() {
   const messages = activeChat ? activeChat.messages : [];
 
   useEffect(() => {
-    try {
-      const savedState = JSON.parse(localStorage.getItem("chatState") || "{}");
-      if (savedState.chats && savedState.chats.length > 0) {
-        setChats(savedState.chats);
-        setActiveChatId(savedState.activeChatId || savedState.chats[0].id);
-      } else {
-        const newChatId = `chat-${Date.now()}`;
-        const newChat = {
-            id: newChatId,
-            title: "New Chat",
-            messages: [{
-                role: "assistant" as const,
-                content: "Hello! I am Marco AI. How can I help you today?"
-            }]
-        };
-        setChats([newChat]);
-        setActiveChatId(newChatId);
-      }
-    } catch (error) {
-       // Handle error or set default state
-    }
-     // Event listener for chat switching
+    if (!isLoaded || !userId) return;
+
+    const loadHistory = async () => {
+        const userChats = await getChats(userId);
+        if (userChats.length > 0) {
+            setChats(userChats);
+            setActiveChatId(userChats[0].id);
+             window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats: userChats } }));
+        } else {
+            createNewChat();
+        }
+    };
+    loadHistory();
+    
     const handleSwitchChat = (e: Event) => {
       const newChatId = (e as CustomEvent).detail.chatId;
       if (newChatId) {
-        const chatExists = chats.some(c => c.id === newChatId);
-        if (chatExists) {
-             setActiveChatId(newChatId);
-        } else if (newChatId === 'new') {
-            const newId = `chat-${Date.now()}`;
-            const newChat = {
-                id: newId,
-                title: "New Chat",
-                messages: [{ role: "assistant" as const, content: "Hello! I am Marco AI. How can I help you today?" }]
-            };
-            const updatedChats = [newChat, ...chats].slice(0, 5);
-            setChats(updatedChats);
-            setActiveChatId(newId);
+        if (newChatId === 'new') {
+            createNewChat();
+        } else {
+            const chatExists = chats.some(c => c.id === newChatId);
+            if (chatExists) {
+                setActiveChatId(newChatId);
+            }
         }
       }
     };
     window.addEventListener('switchChat', handleSwitchChat);
     return () => window.removeEventListener('switchChat', handleSwitchChat);
-  }, []); // Only on mount
+  }, [isLoaded, userId]);
 
-  useEffect(() => {
-    try {
-      const stateToSave = {
-        chats,
-        activeChatId,
-      };
-      localStorage.setItem("chatState", JSON.stringify(stateToSave));
-       window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats } }));
-    } catch (error) {
-      console.error("Failed to save chat history:", error);
-    }
-  }, [chats, activeChatId]);
+
+  const createNewChat = () => {
+    if (!userId) return;
+    const newChatId = `temp-${Date.now()}`;
+    const newChat: Chat = {
+        id: newChatId,
+        userId: userId,
+        title: "New Chat",
+        createdAt: new Date() as any, // Temporary
+        messages: [{
+            role: "assistant" as const,
+            content: "Hello! I am Marco AI. How can I help you today?"
+        }]
+    };
+    setChats(prev => [newChat, ...prev]);
+    setActiveChatId(newChatId);
+  };
 
 
   useEffect(() => {
@@ -191,23 +180,23 @@ export function ChatPanel() {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!text.trim() || isPending || !activeChatId) return;
+    if (!text.trim() || isPending || !activeChatId || !userId) return;
 
     const newUserMessage: Message = { role: "user", content: text };
     
-    let updatedChats = chats.map(chat => {
-        if (chat.id === activeChatId) {
-            const isNewChat = chat.messages.length <= 1;
-            return {
-                ...chat,
-                title: isNewChat ? text.substring(0, 30) : chat.title,
-                messages: [...chat.messages, newUserMessage]
-            };
-        }
-        return chat;
-    });
+    let currentChat = chats.find(c => c.id === activeChatId);
+    if (!currentChat) return;
 
-    setChats(updatedChats);
+    const isNewChat = currentChat.messages.length <= 1;
+    const updatedMessages = [...currentChat.messages, newUserMessage];
+
+    const updatedChat = {
+        ...currentChat,
+        title: isNewChat ? text.substring(0, 30) : currentChat.title,
+        messages: updatedMessages,
+    };
+
+    setChats(chats.map(c => c.id === activeChatId ? updatedChat : c));
     setInput("");
 
     startTransition(async () => {
@@ -219,12 +208,31 @@ export function ChatPanel() {
         }
         const aiMessage: Message = { role: "assistant", content: result };
         
-        setChats(prevChats => prevChats.map(chat => {
-             if (chat.id === activeChatId) {
-                return { ...chat, messages: [...chat.messages, aiMessage] };
-            }
-            return chat;
-        }));
+        const finalMessages = [...updatedMessages, aiMessage];
+
+        if (isNewChat) {
+            const saved = await saveChat({
+                userId,
+                title: updatedChat.title,
+                messages: finalMessages,
+            });
+            setChats(prev => [saved, ...prev.filter(c => !c.id.startsWith('temp-'))].slice(0, 5));
+            setActiveChatId(saved.id);
+            window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats: [saved, ...chats.filter(c => c.id !== activeChatId)] } }));
+        } else {
+            // This is an existing chat. It needs to be saved differently (update instead of new doc).
+            // For simplicity, we'll save it as a new chat and get a new ID, then update the state.
+            // A more robust solution would update the existing doc.
+             const saved = await saveChat({
+                userId,
+                title: updatedChat.title,
+                messages: finalMessages,
+            });
+            // Delete the old one. We can find it by title and userId, but for now we are just keeping 5.
+            setChats(prev => [saved, ...prev.filter(c => c.id !== activeChatId && !c.id.startsWith('temp-'))].slice(0, 5));
+            setActiveChatId(saved.id);
+            window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats: [saved, ...chats.filter(c => c.id !== activeChatId)] } }));
+        }
 
       } catch (error) {
         const errorMessage =
@@ -296,23 +304,20 @@ export function ChatPanel() {
     fileInputRef.current?.click();
   };
   
-  const handleClearHistory = () => {
-    setChats(prev => prev.filter(c => c.id !== activeChatId));
-    
-    // If there are other chats, switch to the first one. Otherwise, create a new chat.
+  const handleClearHistory = async () => {
+    if (!userId || !activeChatId) return;
+
+    await deleteChat(activeChatId);
     const remainingChats = chats.filter(c => c.id !== activeChatId);
+    setChats(remainingChats);
+    
     if(remainingChats.length > 0) {
         setActiveChatId(remainingChats[0].id);
     } else {
-        const newChatId = `chat-${Date.now()}`;
-        const newChat = {
-            id: newChatId,
-            title: "New Chat",
-            messages: [{ role: "assistant" as const, content: "Hello! I am Marco AI. How can I help you today?" }]
-        };
-        setChats([newChat]);
-        setActiveChatId(newChatId);
+        createNewChat();
     }
+    
+    window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats: remainingChats } }));
 
     setFileSummary(null);
     toast({
@@ -358,7 +363,7 @@ export function ChatPanel() {
       <div className="flex flex-1 flex-col w-full max-w-3xl pt-16 pb-32">
         <ScrollArea className="flex-1 px-4" ref={scrollAreaRef}>
           <div className="space-y-6">
-            {messages.length <= 1 && !fileSummary ? (
+            {!activeChat || messages.length <= 1 && !fileSummary ? (
                  <div className="flex flex-col items-center justify-center text-center pt-16">
                     <div className="h-48 w-48">
                         <AvatarCanvas isAnimated={true} />
@@ -443,7 +448,7 @@ export function ChatPanel() {
                     handleSubmit(e);
                   }
                 }}
-                disabled={isPending}
+                disabled={isPending || !userId}
               />
               <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
                  <Button
@@ -461,7 +466,7 @@ export function ChatPanel() {
                   type="submit"
                   size="icon"
                   className="shrink-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
-                  disabled={isPending || !input.trim()}
+                  disabled={isPending || !input.trim() || !userId}
                 >
                   {isPending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />

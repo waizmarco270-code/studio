@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { Plus, MessageSquare, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,40 +13,40 @@ import {
   SidebarContent,
   useSidebar,
 } from "@/components/ui/sidebar";
+import type { Chat } from "@/lib/chat-history";
+import { getChats } from "@/lib/chat-history";
 
-type Chat = {
-  id: string;
-  title: string;
-};
 
 export function RecentChats() {
   const [chats, setChats] = useState<Chat[]>([]);
   const { toggleSidebar } = useSidebar();
+  const { userId, isLoaded } = useAuth();
 
   useEffect(() => {
-    // Function to load chats
-    const loadChats = () => {
-      try {
-        const savedState = JSON.parse(localStorage.getItem("chatState") || "{}");
-        if (savedState.chats) {
-          setChats(savedState.chats);
-        }
-      } catch (error) {
-        console.error("Failed to load chats from local storage:", error);
-      }
+    if (!isLoaded || !userId) return;
+
+    const loadChats = async () => {
+      const userChats = await getChats(userId);
+      setChats(userChats);
     };
 
-    // Load chats on initial render
     loadChats();
 
-    // Listen for custom event to update chats
-    window.addEventListener('chatHistoryUpdated', loadChats);
-    
-    // Clean up
-    return () => {
-      window.removeEventListener('chatHistoryUpdated', loadChats);
+    const handleChatHistoryUpdate = (e: Event) => {
+        const updatedChats = (e as CustomEvent).detail.chats as Chat[];
+        if(updatedChats) {
+            setChats(updatedChats);
+        } else {
+            loadChats();
+        }
     };
-  }, []);
+    
+    window.addEventListener('chatHistoryUpdated', handleChatHistoryUpdate);
+    
+    return () => {
+      window.removeEventListener('chatHistoryUpdated', handleChatHistoryUpdate);
+    };
+  }, [isLoaded, userId]);
 
   const handleSwitchChat = (chatId: string) => {
     window.dispatchEvent(new CustomEvent('switchChat', { detail: { chatId } }));
