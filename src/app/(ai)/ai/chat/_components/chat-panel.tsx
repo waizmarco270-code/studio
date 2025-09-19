@@ -78,18 +78,29 @@ export function ChatPanel() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const placeholder = useTypingEffect(placeholderPrompts, 100, 50);
 
+  const initialMessages: Message[] = [
+    {
+      role: "assistant",
+      content: "Hey 👋 Welcome MindMate Users",
+    },
+    {
+      role: "assistant",
+      content: "Hello! I am Marco AI. How can I help you today?",
+    },
+  ];
+
   useEffect(() => {
     try {
       const storedMessages = localStorage.getItem('chatMessages');
       if (storedMessages) {
-        setMessages(JSON.parse(storedMessages));
+        const parsedMessages = JSON.parse(storedMessages);
+        if (parsedMessages.length > 0) {
+          setMessages(parsedMessages);
+        } else {
+          setMessages(initialMessages);
+        }
       } else {
-        setMessages([
-          {
-            role: "assistant",
-            content: "Hello! I am Marco AI. How can I help you today?",
-          },
-        ]);
+        setMessages(initialMessages);
       }
 
       const storedCount = localStorage.getItem('requestCount');
@@ -101,12 +112,7 @@ export function ChatPanel() {
       }
     } catch (error) {
       console.error("Could not access localStorage.", error);
-       setMessages([
-          {
-            role: "assistant",
-            content: "Hello! I am Marco AI. How can I help you today?",
-          },
-        ]);
+       setMessages(initialMessages);
     }
   }, []);
 
@@ -280,11 +286,7 @@ export function ChatPanel() {
   };
   
   const handleClearHistory = async () => {
-    const initialMessage = {
-      role: "assistant" as const,
-      content: "Hello! I am Marco AI. How can I help you today?",
-    };
-    setMessages([initialMessage]);
+    setMessages(initialMessages);
     setFileSummary(null);
      try {
        localStorage.removeItem('chatMessages');
@@ -364,7 +366,7 @@ export function ChatPanel() {
       <main className="flex-1 overflow-y-auto">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
           <div className="px-4 py-6 space-y-6 max-w-3xl mx-auto">
-            {messages.length <= 1 && !fileSummary ? (
+            {messages.length <= 2 && !fileSummary ? (
                  <div className="flex flex-col items-center justify-center text-center pt-10 md:pt-16">
                     <div className="h-32 w-32 mb-4">
                         <AvatarCanvas isAnimated={true} />
@@ -506,7 +508,3 @@ export function ChatPanel() {
     </div>
   );
 }
-
-    
-
-    
