@@ -9,6 +9,7 @@ import {
   VolumeX,
   Paperclip,
   Trash2,
+  PanelLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,11 +23,18 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { FileUploadDialog } from "./file-upload-dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type Message = {
   role: "user" | "assistant";
   content: string | React.ReactNode;
 };
+
+type Chat = {
+    id: string;
+    title: string;
+    messages: Message[];
+}
 
 const examplePrompts = [
   "Explain quantum computing in simple terms",
@@ -43,7 +51,8 @@ declare global {
 }
 
 export function ChatPanel() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -55,38 +64,69 @@ export function ChatPanel() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [fileSummary, setFileSummary] = useState<{ name: string; summary: string | null; progress: string | null } | null>(null);
+  const { toggleSidebar } = useSidebar();
+  
+  const activeChat = chats.find(chat => chat.id === activeChatId);
+  const messages = activeChat ? activeChat.messages : [];
 
   useEffect(() => {
     try {
-      const savedHistory = JSON.parse(localStorage.getItem("chatHistory") || "[]");
-      if (savedHistory.length > 0) {
-        setMessages(savedHistory);
+      const savedState = JSON.parse(localStorage.getItem("chatState") || "{}");
+      if (savedState.chats && savedState.chats.length > 0) {
+        setChats(savedState.chats);
+        setActiveChatId(savedState.activeChatId || savedState.chats[0].id);
       } else {
-        setMessages([
-          {
-            role: "assistant",
-            content: "Hello! I am Marco AI. How can I help you today?"
-          }
-        ]);
+        const newChatId = `chat-${Date.now()}`;
+        const newChat = {
+            id: newChatId,
+            title: "New Chat",
+            messages: [{
+                role: "assistant" as const,
+                content: "Hello! I am Marco AI. How can I help you today?"
+            }]
+        };
+        setChats([newChat]);
+        setActiveChatId(newChatId);
       }
     } catch (error) {
-       setMessages([
-          {
-            role: "assistant",
-            content: "Hello! I am Marco AI. How can I help you today?"
-          }
-        ]);
+       // Handle error or set default state
     }
-  }, []);
+     // Event listener for chat switching
+    const handleSwitchChat = (e: Event) => {
+      const newChatId = (e as CustomEvent).detail.chatId;
+      if (newChatId) {
+        const chatExists = chats.some(c => c.id === newChatId);
+        if (chatExists) {
+             setActiveChatId(newChatId);
+        } else if (newChatId === 'new') {
+            const newId = `chat-${Date.now()}`;
+            const newChat = {
+                id: newId,
+                title: "New Chat",
+                messages: [{ role: "assistant" as const, content: "Hello! I am Marco AI. How can I help you today?" }]
+            };
+            const updatedChats = [newChat, ...chats].slice(0, 5);
+            setChats(updatedChats);
+            setActiveChatId(newId);
+        }
+      }
+    };
+    window.addEventListener('switchChat', handleSwitchChat);
+    return () => window.removeEventListener('switchChat', handleSwitchChat);
+  }, []); // Only on mount
 
   useEffect(() => {
     try {
-      // Store only the last 5 messages
-      localStorage.setItem("chatHistory", JSON.stringify(messages.slice(-5)));
+      const stateToSave = {
+        chats,
+        activeChatId,
+      };
+      localStorage.setItem("chatState", JSON.stringify(stateToSave));
+       window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats } }));
     } catch (error) {
       console.error("Failed to save chat history:", error);
     }
-  }, [messages]);
+  }, [chats, activeChatId]);
 
 
   useEffect(() => {
@@ -151,13 +191,23 @@ export function ChatPanel() {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!text.trim() || isPending) return;
+    if (!text.trim() || isPending || !activeChatId) return;
 
-    const newMessages: Message[] = [
-      ...messages,
-      { role: "user", content: text },
-    ];
-    setMessages(newMessages);
+    const newUserMessage: Message = { role: "user", content: text };
+    
+    let updatedChats = chats.map(chat => {
+        if (chat.id === activeChatId) {
+            const isNewChat = chat.messages.length <= 1;
+            return {
+                ...chat,
+                title: isNewChat ? text.substring(0, 30) : chat.title,
+                messages: [...chat.messages, newUserMessage]
+            };
+        }
+        return chat;
+    });
+
+    setChats(updatedChats);
     setInput("");
 
     startTransition(async () => {
@@ -167,10 +217,15 @@ export function ChatPanel() {
             const utterance = new SpeechSynthesisUtterance(result);
             window.speechSynthesis.speak(utterance);
         }
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: result },
-        ]);
+        const aiMessage: Message = { role: "assistant", content: result };
+        
+        setChats(prevChats => prevChats.map(chat => {
+             if (chat.id === activeChatId) {
+                return { ...chat, messages: [...chat.messages, aiMessage] };
+            }
+            return chat;
+        }));
+
       } catch (error) {
         const errorMessage =
           (error as Error)?.message || "Something went wrong. Please try again.";
@@ -181,7 +236,14 @@ export function ChatPanel() {
             ? "The Gemini API Key is missing. Please add it in the Settings page."
             : errorMessage,
         });
-        setMessages((prevMessages) => prevMessages.slice(0, -1)); // Revert user message on error
+        
+        // Revert on error
+         setChats(prevChats => prevChats.map(chat => {
+             if (chat.id === activeChatId) {
+                return { ...chat, messages: chat.messages.slice(0, -1) };
+            }
+            return chat;
+        }));
       }
     });
   };
@@ -235,17 +297,27 @@ export function ChatPanel() {
   };
   
   const handleClearHistory = () => {
-    setMessages([
-        {
-            role: "assistant",
-            content: "Hello! I am Marco AI. How can I help you today?"
-        }
-    ]);
+    setChats(prev => prev.filter(c => c.id !== activeChatId));
+    
+    // If there are other chats, switch to the first one. Otherwise, create a new chat.
+    const remainingChats = chats.filter(c => c.id !== activeChatId);
+    if(remainingChats.length > 0) {
+        setActiveChatId(remainingChats[0].id);
+    } else {
+        const newChatId = `chat-${Date.now()}`;
+        const newChat = {
+            id: newChatId,
+            title: "New Chat",
+            messages: [{ role: "assistant" as const, content: "Hello! I am Marco AI. How can I help you today?" }]
+        };
+        setChats([newChat]);
+        setActiveChatId(newChatId);
+    }
+
     setFileSummary(null);
-    localStorage.removeItem("chatHistory");
     toast({
-        title: "Chat History Cleared",
-        description: "Your conversation has been reset.",
+        title: "Chat Cleared",
+        description: "The current conversation has been removed.",
     });
   };
 
@@ -253,10 +325,19 @@ export function ChatPanel() {
     <div className="relative flex h-screen w-full flex-col items-center bg-background text-foreground">
       <header className="absolute top-4 right-4 flex items-center gap-2">
          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="md:hidden"
+         >
+             <PanelLeft />
+         </Button>
+         <Button
             type="button"
             variant="ghost"
             size="icon"
             onClick={handleClearHistory}
+            title="Clear current chat"
           >
             <Trash2 className="h-5 w-5" />
             <span className="sr-only">Clear History</span>
@@ -266,6 +347,7 @@ export function ChatPanel() {
             variant="ghost"
             size="icon"
             onClick={() => setIsTtsEnabled(!isTtsEnabled)}
+            title="Toggle Text-to-Speech"
           >
             {isTtsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
             <span className="sr-only">Toggle TTS</span>

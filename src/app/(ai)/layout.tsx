@@ -3,5 +3,5 @@ export default function AiLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="flex min-h-screen flex-col">{children}</div>;
+  return <div className="flex min-h-screen flex-col bg-background">{children}</div>;
 }
