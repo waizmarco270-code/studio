@@ -22,22 +22,22 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
     >
       {!isUser && (
         <Avatar className="h-8 w-8 border">
-          <div className="flex h-full w-full items-center justify-center bg-primary text-primary-foreground">
+          <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary">
             <Bot className="h-5 w-5" />
           </div>
         </Avatar>
       )}
       <div
         className={cn(
-          "max-w-[75%] rounded-lg px-4 py-3",
+          "max-w-[75%] rounded-lg px-4 py-3 shadow-sm",
           isUser
-            ? "bg-muted text-muted-foreground"
-            : "bg-primary text-primary-foreground"
+            ? "bg-muted text-foreground"
+            : "bg-card text-foreground"
         )}
       >
         {typeof content === 'string' ? (
           <ReactMarkdown
-            className="prose dark:prose-invert prose-p:leading-relaxed prose-p:m-0 prose-headings:m-0 prose-ul:m-0 prose-ol:m-0"
+            className="prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-p:m-0 prose-headings:font-semibold prose-headings:text-foreground prose-headings:m-0 prose-ul:m-0 prose-ol:m-0 prose-table:my-2 prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1 prose-th:border prose-td:border"
           >
             {content}
           </ReactMarkdown>
