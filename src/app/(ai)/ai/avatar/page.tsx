@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -6,6 +9,8 @@ import { AvatarCanvas } from "./_components/avatar-canvas";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function AvatarPage() {
+  const [isAnimated, setIsAnimated] = useState(true);
+
   return (
     <div className="flex h-full w-full flex-col">
        <div className="flex items-center justify-between border-b pb-4">
@@ -22,7 +27,7 @@ export default function AvatarPage() {
         <div className="lg:col-span-2">
             <Card className="h-full">
                 <CardContent className="h-full p-2">
-                    <AvatarCanvas />
+                    <AvatarCanvas isAnimated={isAnimated} />
                 </CardContent>
             </Card>
         </div>
@@ -35,13 +40,17 @@ export default function AvatarPage() {
                 <CardContent className="space-y-6">
                     <div className="flex items-center justify-between">
                         <Label htmlFor="lipsync-switch">Pause Lip-Sync</Label>
-                        <Switch id="lipsync-switch" />
+                        <Switch id="lipsync-switch" disabled />
                     </div>
                      <div className="flex items-center justify-between">
                         <Label htmlFor="animation-switch">Reduce Animation</Label>
-                        <Switch id="animation-switch" />
+                        <Switch 
+                          id="animation-switch" 
+                          checked={!isAnimated}
+                          onCheckedChange={() => setIsAnimated(!isAnimated)}
+                        />
                     </div>
-                    <Button className="w-full">Export Snapshot</Button>
+                    <Button className="w-full" disabled>Export Snapshot</Button>
                 </CardContent>
             </Card>
              <Card>
@@ -50,7 +59,7 @@ export default function AvatarPage() {
                     <CardDescription>Upload a photo to lightly map onto the avatar. Requires consent.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button variant="outline" className="w-full">Upload Photo</Button>
+                    <Button variant="outline" className="w-full" disabled>Upload Photo</Button>
                 </CardContent>
             </Card>
         </div>

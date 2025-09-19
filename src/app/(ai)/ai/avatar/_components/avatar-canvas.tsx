@@ -4,7 +4,11 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useTheme } from "next-themes";
 
-export function AvatarCanvas() {
+interface AvatarCanvasProps {
+  isAnimated: boolean;
+}
+
+export function AvatarCanvas({ isAnimated }: AvatarCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
 
@@ -53,8 +57,10 @@ export function AvatarCanvas() {
     // Animation
     const animate = () => {
       requestAnimationFrame(animate);
-      avatar.rotation.x += 0.005;
-      avatar.rotation.y += 0.005;
+      if (isAnimated) {
+        avatar.rotation.x += 0.005;
+        avatar.rotation.y += 0.005;
+      }
       renderer.render(scene, camera);
     };
     animate();
@@ -81,7 +87,7 @@ export function AvatarCanvas() {
       material.dispose();
       renderer.dispose();
     };
-  }, [theme]);
+  }, [theme, isAnimated]);
 
   return <div ref={mountRef} className="h-full w-full rounded-md" />;
 }
