@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useTransition } from "react";
 import {
   Card,
   CardContent,
@@ -18,17 +21,42 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { setApiKey } from "./actions";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function SettingsPage() {
+  const [geminiKey, setGeminiKey] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  const handleSave = async () => {
+    startTransition(async () => {
+      const result = await setApiKey(geminiKey);
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "API Key saved. The AI should now be functional.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.error,
+        });
+      }
+    });
+  };
+
   return (
     <div className="flex h-full w-full flex-col">
-       <div className="flex items-center justify-between border-b pb-4">
+      <div className="flex items-center justify-between border-b pb-4">
         <div>
           <h1 className="font-headline text-2xl font-bold">Settings</h1>
           <p className="text-muted-foreground">Manage your preferences</p>
         </div>
         <div className="hidden md:block">
-           <ThemeToggle />
+          <ThemeToggle />
         </div>
       </div>
 
@@ -43,11 +71,11 @@ export default function SettingsPage() {
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <Label htmlFor="tts-switch">Enable TTS Output</Label>
-              <Switch id="tts-switch" defaultChecked />
+              <Switch id="tts-switch" defaultChecked disabled />
             </div>
             <div className="space-y-2">
               <Label htmlFor="voice-select">Voice Selection</Label>
-              <Select defaultValue="alloy">
+              <Select defaultValue="alloy" disabled>
                 <SelectTrigger id="voice-select">
                   <SelectValue placeholder="Select a voice" />
                 </SelectTrigger>
@@ -63,20 +91,29 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="volume-slider">Volume</Label>
-              <Slider id="volume-slider" defaultValue={[80]} max={100} step={1} />
+              <Slider id="volume-slider" defaultValue={[80]} max={100} step={1} disabled />
             </div>
             <div className="space-y-2">
               <Label htmlFor="speed-slider">Playback Speed</Label>
-               <Slider id="speed-slider" defaultValue={[1]} max={2} step={0.1} />
+              <Slider id="speed-slider" defaultValue={[1]} max={2} step={0.1} disabled />
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>API Settings (Admin)</CardTitle>
+            <CardTitle>API Settings</CardTitle>
             <CardDescription>
-              Manage API keys for LLM providers. Changes affect all users.
+              Manage API keys for LLM providers. Get your key from{" "}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                Google AI Studio
+              </a>
+              .
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -86,17 +123,16 @@ export default function SettingsPage() {
                 id="gemini-key"
                 type="password"
                 placeholder="Enter Gemini API Key"
+                value={geminiKey}
+                onChange={(e) => setGeminiKey(e.target.value)}
+                disabled={isPending}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="groq-key">GROQ API Key</Label>
-              <Input
-                id="groq-key"
-                type="password"
-                placeholder="Enter GROQ API Key"
-              />
-            </div>
-            <Button>Save API Keys</Button>
+            
+            <Button onClick={handleSave} disabled={isPending || !geminiKey}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save API Key
+            </Button>
           </CardContent>
         </Card>
 
@@ -108,7 +144,7 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="destructive">Delete My Data</Button>
+            <Button variant="destructive" disabled>Delete My Data</Button>
             <p className="mt-2 text-xs text-muted-foreground">
               This action is irreversible and will permanently delete all your
               chat history and uploaded files.
