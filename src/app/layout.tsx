@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
+import "@/lib/firebase";
 
 export const metadata: Metadata = {
   title: "MarcoAI: Your MindMate Companion",
