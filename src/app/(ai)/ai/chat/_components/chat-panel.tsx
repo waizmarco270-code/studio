@@ -12,7 +12,6 @@ import {
   Trash2,
   PanelLeft,
 } from "lucide-react";
-import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,7 +25,6 @@ import { FileUploadDialog } from "./file-upload-dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar";
-import { getChats, saveChat, deleteChat, deleteAllUserChats, Chat } from "@/lib/chat-history";
 
 type Message = {
   role: "user" | "assistant";
@@ -48,9 +46,12 @@ declare global {
 }
 
 export function ChatPanel() {
-  const { userId, isLoaded } = useAuth();
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: "Hello! I am Marco AI. How can I help you today?",
+    },
+  ]);
   const [input, setInput] = useState("");
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -63,60 +64,6 @@ export function ChatPanel() {
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [fileSummary, setFileSummary] = useState<{ name: string; summary: string | null; progress: string | null } | null>(null);
   const { toggleSidebar } = useSidebar();
-  
-  const activeChat = chats.find(chat => chat.id === activeChatId);
-  const messages = activeChat ? activeChat.messages : [];
-
-  useEffect(() => {
-    if (!isLoaded || !userId) return;
-
-    const loadHistory = async () => {
-        const userChats = await getChats(userId);
-        if (userChats.length > 0) {
-            setChats(userChats);
-            setActiveChatId(userChats[0].id);
-             window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats: userChats } }));
-        } else {
-            createNewChat();
-        }
-    };
-    loadHistory();
-    
-    const handleSwitchChat = (e: Event) => {
-      const newChatId = (e as CustomEvent).detail.chatId;
-      if (newChatId) {
-        if (newChatId === 'new') {
-            createNewChat();
-        } else {
-            const chatExists = chats.some(c => c.id === newChatId);
-            if (chatExists) {
-                setActiveChatId(newChatId);
-            }
-        }
-      }
-    };
-    window.addEventListener('switchChat', handleSwitchChat);
-    return () => window.removeEventListener('switchChat', handleSwitchChat);
-  }, [isLoaded, userId]);
-
-
-  const createNewChat = () => {
-    if (!userId) return;
-    const newChatId = `temp-${Date.now()}`;
-    const newChat: Chat = {
-        id: newChatId,
-        userId: userId,
-        title: "New Chat",
-        createdAt: new Date() as any, // Temporary
-        messages: [{
-            role: "assistant" as const,
-            content: "Hello! I am Marco AI. How can I help you today?"
-        }]
-    };
-    setChats(prev => [newChat, ...prev]);
-    setActiveChatId(newChatId);
-  };
-
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -180,23 +127,11 @@ export function ChatPanel() {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!text.trim() || isPending || !activeChatId || !userId) return;
+    if (!text.trim() || isPending) return;
 
     const newUserMessage: Message = { role: "user", content: text };
-    
-    let currentChat = chats.find(c => c.id === activeChatId);
-    if (!currentChat) return;
-
-    const isNewChat = currentChat.messages.length <= 1;
-    const updatedMessages = [...currentChat.messages, newUserMessage];
-
-    const updatedChat = {
-        ...currentChat,
-        title: isNewChat ? text.substring(0, 30) : currentChat.title,
-        messages: updatedMessages,
-    };
-
-    setChats(chats.map(c => c.id === activeChatId ? updatedChat : c));
+    const newMessages = [...messages, newUserMessage];
+    setMessages(newMessages);
     setInput("");
 
     startTransition(async () => {
@@ -207,32 +142,7 @@ export function ChatPanel() {
             window.speechSynthesis.speak(utterance);
         }
         const aiMessage: Message = { role: "assistant", content: result };
-        
-        const finalMessages = [...updatedMessages, aiMessage];
-
-        if (isNewChat) {
-            const saved = await saveChat({
-                userId,
-                title: updatedChat.title,
-                messages: finalMessages,
-            });
-            setChats(prev => [saved, ...prev.filter(c => !c.id.startsWith('temp-'))].slice(0, 5));
-            setActiveChatId(saved.id);
-            window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats: [saved, ...chats.filter(c => c.id !== activeChatId)] } }));
-        } else {
-            // This is an existing chat. It needs to be saved differently (update instead of new doc).
-            // For simplicity, we'll save it as a new chat and get a new ID, then update the state.
-            // A more robust solution would update the existing doc.
-             const saved = await saveChat({
-                userId,
-                title: updatedChat.title,
-                messages: finalMessages,
-            });
-            // Delete the old one. We can find it by title and userId, but for now we are just keeping 5.
-            setChats(prev => [saved, ...prev.filter(c => c.id !== activeChatId && !c.id.startsWith('temp-'))].slice(0, 5));
-            setActiveChatId(saved.id);
-            window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats: [saved, ...chats.filter(c => c.id !== activeChatId)] } }));
-        }
+        setMessages([...newMessages, aiMessage]);
 
       } catch (error) {
         const errorMessage =
@@ -246,12 +156,7 @@ export function ChatPanel() {
         });
         
         // Revert on error
-         setChats(prevChats => prevChats.map(chat => {
-             if (chat.id === activeChatId) {
-                return { ...chat, messages: chat.messages.slice(0, -1) };
-            }
-            return chat;
-        }));
+        setMessages(newMessages.slice(0, -1));
       }
     });
   };
@@ -305,20 +210,12 @@ export function ChatPanel() {
   };
   
   const handleClearHistory = async () => {
-    if (!userId || !activeChatId) return;
-
-    await deleteChat(activeChatId);
-    const remainingChats = chats.filter(c => c.id !== activeChatId);
-    setChats(remainingChats);
-    
-    if(remainingChats.length > 0) {
-        setActiveChatId(remainingChats[0].id);
-    } else {
-        createNewChat();
-    }
-    
-    window.dispatchEvent(new CustomEvent('chatHistoryUpdated', { detail: { chats: remainingChats } }));
-
+    setMessages([
+        {
+          role: "assistant",
+          content: "Hello! I am Marco AI. How can I help you today?",
+        },
+      ]);
     setFileSummary(null);
     toast({
         title: "Chat Cleared",
@@ -363,7 +260,7 @@ export function ChatPanel() {
       <div className="flex flex-1 flex-col w-full max-w-3xl pt-16 pb-32">
         <ScrollArea className="flex-1 px-4" ref={scrollAreaRef}>
           <div className="space-y-6">
-            {!activeChat || messages.length <= 1 && !fileSummary ? (
+            {messages.length <= 1 && !fileSummary ? (
                  <div className="flex flex-col items-center justify-center text-center pt-16">
                     <div className="h-48 w-48">
                         <AvatarCanvas isAnimated={true} />
@@ -448,7 +345,7 @@ export function ChatPanel() {
                     handleSubmit(e);
                   }
                 }}
-                disabled={isPending || !userId}
+                disabled={isPending}
               />
               <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
                  <Button
@@ -466,7 +363,7 @@ export function ChatPanel() {
                   type="submit"
                   size="icon"
                   className="shrink-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
-                  disabled={isPending || !input.trim() || !userId}
+                  disabled={isPending || !input.trim()}
                 >
                   {isPending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -478,7 +375,7 @@ export function ChatPanel() {
               </div>
           </form>
            <p className="text-center text-xs text-muted-foreground">
-             MarcoAI remembers your last 5 conversations — just enough to feel human, but never cluttered. Crafted by WaizMarco, designed for legends.
+             MarcoAI is your companion. Crafted by WaizMarco, designed for legends.
             </p>
         </div>
       </div>
