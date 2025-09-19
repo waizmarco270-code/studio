@@ -116,12 +116,16 @@ export function ChatPanel() {
   }, [messages, fileSummary]);
 
   useEffect(() => {
-    const storedCount = localStorage.getItem('requestCount');
-    const unlockedStatus = localStorage.getItem('isUnlocked');
-    if (unlockedStatus === 'true') {
-      setIsUnlocked(true);
-    } else if (storedCount) {
-      setRequestCount(parseInt(storedCount, 10));
+    try {
+      const storedCount = localStorage.getItem('requestCount');
+      const unlockedStatus = localStorage.getItem('isUnlocked');
+      if (unlockedStatus === 'true') {
+        setIsUnlocked(true);
+      } else if (storedCount) {
+        setRequestCount(parseInt(storedCount, 10));
+      }
+    } catch (error) {
+      console.error("Could not access localStorage.", error);
     }
   }, []);
 
@@ -159,14 +163,18 @@ export function ChatPanel() {
     startTransition(async () => {
       try {
         const result = await implementAIIdentity(text);
-        if (isTtsEnabled) {
+        if (isTtsEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
             const utterance = new SpeechSynthesisUtterance(result);
             window.speechSynthesis.speak(utterance);
         }
         const newCount = requestCount + 1;
         setRequestCount(newCount);
         if (!isUnlocked) {
-          localStorage.setItem('requestCount', newCount.toString());
+          try {
+            localStorage.setItem('requestCount', newCount.toString());
+          } catch (error) {
+            console.error("Could not access localStorage.", error);
+          }
         }
 
         const aiMessage: Message = { role: "assistant", content: result };
@@ -183,7 +191,8 @@ export function ChatPanel() {
             : errorMessage,
         });
         
-        setMessages(newMessages.slice(0, -1));
+        // This is correct: it removes the user message if the API call fails
+        setMessages(newMessages.slice(0, -1)); 
       }
     });
   };
@@ -253,8 +262,12 @@ export function ChatPanel() {
   const handlePasswordSubmit = (password: string) => {
     if (password === UNLOCK_PASSWORD) {
       setIsUnlocked(true);
-      localStorage.setItem('isUnlocked', 'true');
-      localStorage.removeItem('requestCount');
+      try {
+        localStorage.setItem('isUnlocked', 'true');
+        localStorage.removeItem('requestCount');
+      } catch (error) {
+        console.error("Could not access localStorage.", error);
+      }
       setShowPasswordDialog(false);
       toast({
         title: "Success",
@@ -272,44 +285,49 @@ export function ChatPanel() {
 
 
   return (
-    <div className="relative flex h-screen w-full flex-col items-center bg-background text-foreground">
-      <header className="absolute top-4 right-4 flex items-center gap-2">
-         <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="md:hidden"
-         >
-             <PanelLeft />
-         </Button>
-         <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={handleClearHistory}
-            title="Clear current chat"
-          >
-            <Trash2 className="h-5 w-5" />
-            <span className="sr-only">Clear History</span>
-          </Button>
-         <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsTtsEnabled(!isTtsEnabled)}
-            title="Toggle Text-to-Speech"
-          >
-            {isTtsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-            <span className="sr-only">Toggle TTS</span>
-          </Button>
-        <ThemeToggle />
+    <div className="flex h-screen w-full flex-col bg-background text-foreground">
+      <header className="flex h-16 items-center justify-between border-b bg-card px-4 shrink-0">
+         <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="md:hidden"
+            >
+              <PanelLeft />
+              <span className="sr-only">Toggle Sidebar</span>
+            </Button>
+         </div>
+         <div className="flex items-center gap-2">
+          <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleClearHistory}
+              title="Clear current chat"
+            >
+              <Trash2 className="h-5 w-5" />
+              <span className="sr-only">Clear History</span>
+            </Button>
+          <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsTtsEnabled(!isTtsEnabled)}
+              title="Toggle Text-to-Speech"
+            >
+              {isTtsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+              <span className="sr-only">Toggle TTS</span>
+            </Button>
+          <ThemeToggle />
+         </div>
       </header>
 
-      <div className="flex flex-1 flex-col w-full max-w-3xl pt-16 pb-32">
-        <ScrollArea className="flex-1 px-4" ref={scrollAreaRef}>
-          <div className="space-y-6">
+      <main className="flex-1 overflow-y-auto">
+        <ScrollArea className="h-full" ref={scrollAreaRef}>
+          <div className="px-4 py-6 space-y-6 max-w-3xl mx-auto">
             {messages.length <= 1 && !fileSummary ? (
-                 <div className="flex flex-col items-center justify-center text-center pt-16">
+                 <div className="flex flex-col items-center justify-center text-center pt-10 md:pt-16">
                     <div className="h-48 w-48">
                         <AvatarCanvas isAnimated={true} />
                     </div>
@@ -357,9 +375,9 @@ export function ChatPanel() {
             )}
           </div>
         </ScrollArea>
-      </div>
+      </main>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-background/50 backdrop-blur-sm">
+      <footer className="w-full shrink-0 bg-card border-t">
         <div className="mx-auto w-full max-w-3xl p-4 space-y-4">
             {!isUnlocked && requestCount >= REQUEST_LIMIT && (
               <div className="text-center text-sm text-destructive font-medium">
@@ -431,7 +449,7 @@ export function ChatPanel() {
              MarcoAI is your companion. Crafted by WaizMarco, designed for legends.
             </p>
         </div>
-      </div>
+      </footer>
       <FileUploadDialog
         open={showUploadDialog}
         onOpenChange={setShowUploadDialog}
@@ -445,3 +463,5 @@ export function ChatPanel() {
     </div>
   );
 }
+
+    
