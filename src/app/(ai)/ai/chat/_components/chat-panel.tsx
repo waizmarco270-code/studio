@@ -11,6 +11,7 @@ import {
   Paperclip,
   Trash2,
   PanelLeft,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +27,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { PasswordDialog } from "./password-dialog";
+import { Card } from "@/components/ui/card";
 
 type Message = {
   role: "user" | "assistant";
@@ -33,9 +35,9 @@ type Message = {
 };
 
 const examplePrompts = [
-  "Explain quantum computing in simple terms",
-  "Got any creative ideas for a 10-year-old’s birthday?",
-  "How do I make an HTTP request in Javascript?",
+  "Explain quantum computing",
+  "Creative birthday ideas?",
+  "HTTP requests in Javascript",
   "What's the meaning of life?",
 ];
 
@@ -328,15 +330,19 @@ export function ChatPanel() {
           <div className="px-4 py-6 space-y-6 max-w-3xl mx-auto">
             {messages.length <= 1 && !fileSummary ? (
                  <div className="flex flex-col items-center justify-center text-center pt-10 md:pt-16">
-                    <div className="h-48 w-48">
+                    <div className="h-32 w-32 mb-4">
                         <AvatarCanvas isAnimated={true} />
                     </div>
                      <h1 className="mt-4 text-3xl font-bold">How can I help you today?</h1>
-                     <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
+                     <div className="mt-8 grid grid-cols-2 gap-3 w-full max-w-md">
                         {examplePrompts.map((prompt, i) => (
-                            <Button key={i} variant="outline" className="text-left h-auto whitespace-normal" onClick={() => handleExamplePrompt(prompt)}>
-                                {prompt}
-                            </Button>
+                             <Card 
+                                key={i}
+                                className="p-4 flex items-center justify-center text-center cursor-pointer hover:bg-accent transition-colors"
+                                onClick={() => handleExamplePrompt(prompt)}
+                            >
+                                <p className="text-sm font-medium">{prompt}</p>
+                            </Card>
                         ))}
                     </div>
                 </div>
@@ -377,8 +383,8 @@ export function ChatPanel() {
         </ScrollArea>
       </main>
 
-      <footer className="w-full shrink-0 bg-card border-t">
-        <div className="mx-auto w-full max-w-3xl p-4 space-y-4">
+       <footer className="w-full shrink-0 bg-background border-t">
+        <div className="mx-auto w-full max-w-3xl p-4 space-y-3">
             {!isUnlocked && requestCount >= REQUEST_LIMIT && (
               <div className="text-center text-sm text-destructive font-medium">
                 You have reached your message limit. Enter the password to continue.
@@ -386,17 +392,17 @@ export function ChatPanel() {
             )}
             <form
               onSubmit={handleSubmit}
-              className="relative flex items-center gap-2"
+              className="relative flex w-full items-center"
             >
-              <Button
+                <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="shrink-0 text-muted-foreground hover:text-foreground"
                   onClick={handleFileButtonClick}
                   disabled={isPending}
-              >
-                  <Paperclip className="h-5 w-5" />
+                >
+                  <ImageIcon className="h-6 w-6" />
                   <span className="sr-only">Upload file</span>
               </Button>
               <input
@@ -406,34 +412,36 @@ export function ChatPanel() {
                 onChange={handleFileSelect}
               />
             
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Message MarcoAI..."
-                className="min-h-[50px] w-full resize-none rounded-2xl border-2 border-border bg-card pr-24 shadow-sm"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    handleSubmit(e);
-                  }
-                }}
-                disabled={isPending}
-              />
-              <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
+              <div className="relative flex-1">
+                 <Textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask anything..."
+                    className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-5 pr-16 shadow-sm"
+                    onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                        handleSubmit(e);
+                    }
+                    }}
+                    disabled={isPending}
+                 />
                  <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-muted-foreground hover:text-foreground"
-                  onClick={handleMicClick}
-                  disabled={isPending}
-                >
-                  {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
-                  <span className="sr-only">Toggle voice recognition</span>
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-9 top-1/2 -translate-y-1/2 shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={handleMicClick}
+                    disabled={isPending}
+                    >
+                    {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
+                    <span className="sr-only">Toggle voice recognition</span>
                 </Button>
+              </div>
+
                 <Button
                   type="submit"
                   size="icon"
-                  className="shrink-0 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
+                  className="ml-2 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary/80"
                   disabled={isPending || !input.trim()}
                 >
                   {isPending ? (
@@ -443,7 +451,6 @@ export function ChatPanel() {
                   )}
                   <span className="sr-only">Send</span>
                 </Button>
-              </div>
           </form>
            <p className="text-center text-xs text-muted-foreground">
              MarcoAI is your companion. Crafted by WaizMarco, designed for legends.
