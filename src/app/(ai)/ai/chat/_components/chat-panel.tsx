@@ -221,7 +221,7 @@ export function ChatPanel() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Message MarcoAI..."
-              className="min-h-[50px] w-full resize-none rounded-2xl border-2 border-border bg-card pr-24 pl-12 shadow-sm"
+              className="min-h-[50px] w-full resize-none rounded-2xl border-2 border-border bg-card pr-20 pl-12 shadow-sm"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   handleSubmit(e);
@@ -244,7 +244,7 @@ export function ChatPanel() {
             <Button
               type="submit"
               size="icon"
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
               disabled={isPending || !input.trim()}
             >
               {isPending ? (
