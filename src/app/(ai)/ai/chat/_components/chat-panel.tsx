@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { PasswordDialog } from "./password-dialog";
 import { Card } from "@/components/ui/card";
+import { useTypingEffect } from "@/hooks/use-typing-effect";
 
 type Message = {
   role: "user" | "assistant";
@@ -39,6 +40,13 @@ const examplePrompts = [
   "Creative birthday ideas?",
   "HTTP requests in Javascript",
   "What's the meaning of life?",
+];
+
+const placeholderPrompts = [
+    "Ask anything...",
+    "Explain a complex topic...",
+    "Help me brainstorm ideas...",
+    "Translate a phrase...",
 ];
 
 const REQUEST_LIMIT = 5;
@@ -68,6 +76,7 @@ export function ChatPanel() {
   const [requestCount, setRequestCount] = useState(0);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const placeholder = useTypingEffect(placeholderPrompts, 100, 50);
 
   useEffect(() => {
     try {
@@ -425,8 +434,8 @@ export function ChatPanel() {
                  <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask anything..."
-                    className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-12 pr-24 shadow-sm"
+                    placeholder={placeholder}
+                    className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-14 pr-24 shadow-sm"
                     onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                         handleSubmit(e);
