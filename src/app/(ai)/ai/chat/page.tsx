@@ -71,6 +71,7 @@ export default function ChatPage() {
 
   const handleChatCreated = async () => {
      startTransition(async () => {
+      if (!userId) return;
       const chats = await getChats(userId);
       if(chats.length > 0) {
           // Find the newest chat, which might not be the first one if creation is slow
@@ -109,7 +110,7 @@ export default function ChatPage() {
     }
   }
 
-  if (isVerified === null || (isVerified && isPending && !userId)) {
+  if (isVerified === null || (isVerified && isPending && chatId === 'new')) {
       return (
           <div className="flex h-screen w-full items-center justify-center bg-background">
               <Loader2 className="h-10 w-10 animate-spin" />

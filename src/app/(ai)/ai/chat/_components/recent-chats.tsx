@@ -17,10 +17,11 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import type { Chat } from "@/app/(ai)/ai/chat/actions";
-import { getChats, createChat } from "@/app/(ai)/ai/chat/actions";
-import { usePathname, useRouter } from "next/navigation";
+import { getChats } from "@/app/(ai)/ai/chat/actions";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { usePathname } from "next/navigation";
 
 
 interface RecentChatsProps {
@@ -36,7 +37,7 @@ export function RecentChats({ userId }: RecentChatsProps) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
-  const activeChatId = usePathname().split('id=')[1] || 'new';
+  const activeChatId = pathname.split('id=')[1] || 'new';
  
   useEffect(() => {
     if (userId) {
@@ -51,6 +52,7 @@ export function RecentChats({ userId }: RecentChatsProps) {
   useEffect(() => {
     const handleChatCreated = () => {
         startTransition(async() => {
+            if (!userId) return;
             setIsLoading(true);
             const userChats = await getChats(userId);
             setChats(userChats);
@@ -61,10 +63,8 @@ export function RecentChats({ userId }: RecentChatsProps) {
     return () => window.removeEventListener('chatCreated', handleChatCreated);
   }, [userId]);
 
-  const handleNewChat = async () => {
-    const newChat = await createChat(userId);
-    setChats([newChat, ...chats]);
-    router.push(`/ai/chat?id=${newChat.id}`);
+  const handleNewChat = () => {
+    router.push(`/ai/chat?id=new`);
   }
 
   const handleLogout = () => {

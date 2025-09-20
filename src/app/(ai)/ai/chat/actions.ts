@@ -45,7 +45,7 @@ export async function getChats(userId: string): Promise<Chat[]> {
 
 export async function getChat(chatId: string, userId: string): Promise<Chat | null> {
     try {
-        if (!userId || !chatId) return null;
+        if (!userId || !chatId || chatId === 'new') return null;
         const chatRef = getChatRef(userId, chatId);
         const docSnap = await getDoc(chatRef);
         if (docSnap.exists()) {
@@ -61,7 +61,7 @@ export async function getChat(chatId: string, userId: string): Promise<Chat | nu
 
 export async function saveChat(chatId: string, userId: string, messages: StoredMessage[]) {
   try {
-    if (!userId) return;
+    if (!userId) return { error: 'User ID is required to save chat.' };
     
     let currentChatId = chatId;
     let isNewChat = chatId === 'new';
@@ -90,6 +90,7 @@ export async function saveChat(chatId: string, userId: string, messages: StoredM
 }
 
 export async function createChat(userId: string): Promise<Chat> {
+  if (!userId) throw new Error("User ID is required to create a chat.");
   const newChatData = {
     userId,
     messages: [],
@@ -101,7 +102,7 @@ export async function createChat(userId: string): Promise<Chat> {
   return { id: newChatRef.id, ...newChatData };
 }
 
-export function streamChat(messages: Message[]): Stream {
+export async function streamChat(messages: Message[]): Promise<Stream> {
   const history = messages
     .filter(m => typeof m.content === 'string') // Only use string messages for history
     .map(m => ({
