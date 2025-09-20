@@ -93,9 +93,10 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     if (chatId !== 'new' && userId) {
       startTransition(async () => {
         const chat = await getChat(chatId, userId);
-        if (chat && chat.messages) {
+        if (chat && chat.messages && chat.messages.length > 0) {
           setMessages(chat.messages);
         } else {
+          // If chat is empty or doesn't exist, start with initial messages
           setMessages(initialMessages);
         }
       });
@@ -170,7 +171,13 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     if (!text.trim() || isPending) return;
 
     const newUserMessage: Message = { role: "user", content: text };
-    const newMessages = [...messages, newUserMessage];
+    
+    // Check if the current message list is the initial one
+    const currentMessages = messages.length === initialMessages.length && messages[1].content === initialMessages[1].content
+        ? []
+        : messages;
+
+    const newMessages = [...currentMessages, newUserMessage];
     setMessages(newMessages);
     setInput("");
 
@@ -185,10 +192,11 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
         const aiMessage: Message = { role: "assistant", content: result };
         const finalMessages = [...newMessages, aiMessage];
         setMessages(finalMessages);
+        
+        const wasNewChat = chatId === 'new';
         await saveChat(chatId, userId, finalMessages);
         
-        // If it was a new chat, we need to let the parent know to refresh chat list and potentially update the URL
-        if (chatId === 'new') {
+        if (wasNewChat) {
             window.dispatchEvent(new CustomEvent('chatCreated'));
         }
 
@@ -321,7 +329,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
       <main className="flex-1 overflow-y-auto">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
           <div className="px-4 py-6 space-y-6 max-w-3xl mx-auto">
-            {messages.length <= initialMessages.length && !fileSummary ? (
+            {messages.length === 0 || (messages.length === initialMessages.length && messages[1].content === initialMessages[1].content) && !fileSummary && chatId === 'new' ? (
                  <div className="flex flex-col items-center justify-center text-center pt-10 md:pt-16">
                     <div className="h-32 w-32 mb-4">
                         <AvatarCanvas isAnimated={!isPending} />
@@ -457,5 +465,3 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     </div>
   );
 }
-
-    

@@ -58,8 +58,8 @@ export default function ChatPage() {
          if (chats.length > 0) {
             setChatId(chats[0].id);
          } else {
-            const newChat = await createChat(userId);
-            setChatId(newChat.id);
+            // No need to create a chat here, 'new' chat will be created on first message
+            setChatId('new');
          }
        });
     }
@@ -70,10 +70,14 @@ export default function ChatPage() {
   }
 
   const handleChatCreated = async () => {
-     const chats = await getChats(userId);
-     if(chats.length > 0) {
-        setChatId(chats[0].id);
-     }
+     // This function is triggered after a 'new' chat has its first message saved.
+     // We refetch the chats to get the new chat's ID and set it as active.
+     startTransition(async () => {
+      const chats = await getChats(userId);
+      if(chats.length > 0) {
+          setChatId(chats[0].id);
+      }
+     });
   }
 
   useEffect(() => {
@@ -105,7 +109,7 @@ export default function ChatPage() {
     }
   }
 
-  if (isVerified === null || (isVerified && isPending)) {
+  if (isVerified === null || (isVerified && isPending && !userId)) {
       return (
           <div className="flex h-screen w-full items-center justify-center bg-background">
               <Loader2 className="h-10 w-10 animate-spin" />
@@ -149,4 +153,3 @@ export default function ChatPage() {
   );
 }
 
-    
