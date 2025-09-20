@@ -12,6 +12,7 @@ import {
   Paperclip,
   Trash2,
   PanelLeft,
+  BookMarked,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,7 +68,11 @@ declare global {
   }
 }
 
-export function ChatPanel() {
+interface ChatPanelProps {
+  onShowTemplates: () => void;
+}
+
+export function ChatPanel({ onShowTemplates }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -329,6 +334,16 @@ export function ChatPanel() {
             </div>
          </div>
          <div className="flex items-center gap-2">
+          <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onShowTemplates}
+              title="Show Prompt Templates"
+            >
+              <BookMarked className="h-5 w-5" />
+              <span className="sr-only">Show Templates</span>
+            </Button>
           <Button
               type="button"
               variant="ghost"
