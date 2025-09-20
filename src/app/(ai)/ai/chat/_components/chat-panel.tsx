@@ -186,14 +186,18 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
 
     startTransition(async () => {
       try {
-        const assistantMessage: Message = { role: 'assistant', content: '', stream: streamChat(newMessages) };
+        const stream = await streamChat(newMessages);
+        const assistantMessage: Message = { role: 'assistant', content: '', stream };
         setMessages(prev => [...prev, assistantMessage]);
 
         // Wait for the stream to finish and get the full content
         let fullResponse = '';
-        for await (const chunk of assistantMessage.stream!) {
-            fullResponse += chunk;
+        if (assistantMessage.stream) {
+          for await (const chunk of assistantMessage.stream) {
+              fullResponse += chunk;
+          }
         }
+
 
         if (isTtsEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
             const utterance = new SpeechSynthesisUtterance(fullResponse);

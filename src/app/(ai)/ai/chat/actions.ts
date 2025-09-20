@@ -106,11 +106,16 @@ export async function streamChat(messages: Message[]): Promise<Stream> {
   const history = messages
     .filter(m => typeof m.content === 'string') // Only use string messages for history
     .map(m => ({
-      role: m.role,
+      role: m.role as 'user' | 'assistant',
       content: [{text: m.content as string}],
     }));
 
-  const latestMessage = history.pop()!;
+  const latestMessage = history.pop();
+  if (!latestMessage) {
+    // This should not happen in a real scenario
+    async function* emptyStream() {}
+    return emptyStream();
+  }
   
   return streamAIIdentity(history, latestMessage.content[0].text);
 }
