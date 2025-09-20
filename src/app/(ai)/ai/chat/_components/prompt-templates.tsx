@@ -27,6 +27,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+
 
 const studySchema = z.object({
   topic: z.string().min(3, "Topic must be at least 3 characters long."),
@@ -58,15 +60,23 @@ export function PromptTemplates() {
   const onStudySubmit = (values: z.infer<typeof studySchema>) => {
     startStudyTransition(async () => {
       setStudyResult([]);
-      const result = await generateStudyQuestions(values);
-      if (result.questions.length > 0) {
-        setStudyResult(result.questions);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not generate study questions.",
-        });
+      try {
+        const result = await generateStudyQuestions(values);
+        if (result.questions.length > 0) {
+          setStudyResult(result.questions);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not generate study questions.",
+          });
+        }
+      } catch (error) {
+         toast({
+            variant: "destructive",
+            title: "Error",
+            description: "An error occurred while generating questions.",
+          });
       }
     });
   };
@@ -74,15 +84,23 @@ export function PromptTemplates() {
   const onQuizSubmit = (values: z.infer<typeof quizSchema>) => {
     startQuizTransition(async () => {
       setQuizResult([]);
-      const result = await generateQuizQuestions(values);
-      if (result.questions.length > 0) {
-        setQuizResult(result.questions);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not generate a quiz.",
-        });
+      try {
+        const result = await generateQuizQuestions(values);
+        if (result.questions.length > 0) {
+          setQuizResult(result.questions);
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not generate a quiz.",
+          });
+        }
+      } catch(error) {
+         toast({
+            variant: "destructive",
+            title: "Error",
+            description: "An error occurred while generating the quiz.",
+          });
       }
     });
   };
