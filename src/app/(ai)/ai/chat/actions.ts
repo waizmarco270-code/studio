@@ -3,16 +3,25 @@
 
 import { firestore } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, query, orderBy, limit, addDoc } from 'firebase/firestore';
+import { streamAIIdentity } from '@/ai/flows/implement-ai-identity';
+
+export type Stream = AsyncGenerator<string, void, unknown>;
 
 export interface Message {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string | React.ReactNode;
+  stream?: Stream;
+}
+
+export interface StoredMessage {
+    role: 'user' | 'assistant';
+    content: string;
 }
 
 export interface Chat {
   id: string;
   title: string;
-  messages: Message[];
+  messages: StoredMessage[];
   createdAt: any;
   userId: string;
 }
@@ -50,7 +59,7 @@ export async function getChat(chatId: string, userId: string): Promise<Chat | nu
     }
 }
 
-export async function saveChat(chatId: string, userId: string, messages: Message[]) {
+export async function saveChat(chatId: string, userId: string, messages: StoredMessage[]) {
   try {
     if (!userId) return;
     
@@ -92,4 +101,15 @@ export async function createChat(userId: string): Promise<Chat> {
   return { id: newChatRef.id, ...newChatData };
 }
 
-    
+export function streamChat(messages: Message[]): Stream {
+  const history = messages
+    .filter(m => typeof m.content === 'string') // Only use string messages for history
+    .map(m => ({
+      role: m.role,
+      content: [{text: m.content as string}],
+    }));
+
+  const latestMessage = history.pop()!;
+  
+  return streamAIIdentity(history, latestMessage.content[0].text);
+}

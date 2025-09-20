@@ -4,14 +4,18 @@ import { Bot, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import type { Stream } from "@/app/(ai)/ai/chat/actions";
+import { useStreamingText } from "@/hooks/use-streaming-text";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string | React.ReactNode;
+  stream?: Stream;
 }
 
-export function ChatMessage({ role, content }: ChatMessageProps) {
+export function ChatMessage({ role, content, stream }: ChatMessageProps) {
   const isUser = role === "user";
+  const streamedContent = useStreamingText(stream);
 
   return (
     <div
@@ -35,7 +39,13 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
             : "bg-card text-foreground"
         )}
       >
-        {typeof content === 'string' ? (
+        {stream ? (
+          <ReactMarkdown
+            className="prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-p:m-0 prose-headings:font-semibold prose-headings:text-foreground prose-headings:m-0 prose-ul:m-0 prose-ol:m-0 prose-table:my-2 prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1 prose-th:border prose-td:border"
+          >
+            {streamedContent}
+          </ReactMarkdown>
+        ) : typeof content === 'string' ? (
           <ReactMarkdown
             className="prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-p:m-0 prose-headings:font-semibold prose-headings:text-foreground prose-headings:m-0 prose-ul:m-0 prose-ol:m-0 prose-table:my-2 prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1 prose-th:border prose-td:border"
           >

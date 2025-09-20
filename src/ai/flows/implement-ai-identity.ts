@@ -16,6 +16,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {MessageData, Part} from 'genkit';
+import {Stream} from 'genkit/streaming';
 
 const ImplementAIIdentityInputSchema = z.string().describe('The user input to Marco AI.');
 export type ImplementAIIdentityInput = z.infer<typeof ImplementAIIdentityInputSchema>;
@@ -23,11 +25,7 @@ export type ImplementAIIdentityInput = z.infer<typeof ImplementAIIdentityInputSc
 const ImplementAIIdentityOutputSchema = z.string().describe('The response from Marco AI with his identity.');
 export type ImplementAIIdentityOutput = z.infer<typeof ImplementAIIdentityOutputSchema>;
 
-export async function implementAIIdentity(input: ImplementAIIdentityInput): Promise<ImplementAIIdentityOutput> {
-  const result = await ai.generate({
-    model: 'googleai/gemini-2.5-flash',
-    prompt: input,
-    system: `You are Marco — a professional assistant for a study app. Always format answers in a clean, readable style with clear breathing space. Follow these rules for every response:
+const SYSTEM_PROMPT = `You are Marco — a professional assistant for a study app. Always format answers in a clean, readable style with clear breathing space. Follow these rules for every response:
 
 1)  **Short summary first (1–2 lines, bold)** — give the direct answer/summary. The summary must be 30 words or less.
 2)  Then a compact **“What this means”** one-paragraph explanation.
@@ -51,8 +49,28 @@ Example output format (use Markdown):
 **Example**
 \`\`\`bash
 sample code or command
-\`\`\``,
+\`\`\``;
+
+export async function implementAIIdentity(input: ImplementAIIdentityInput): Promise<ImplementAIIdentityOutput> {
+  const result = await ai.generate({
+    model: 'googleai/gemini-2.5-flash',
+    prompt: input,
+    system: SYSTEM_PROMPT,
   });
 
   return result.text;
+}
+
+export async function streamAIIdentity(
+  history: MessageData[],
+  newMessage: string
+): Promise<Stream<string>> {
+  const {stream} = ai.generateStream({
+    model: 'googleai/gemini-2.5-flash',
+    history,
+    prompt: newMessage,
+    system: SYSTEM_PROMPT,
+  });
+
+  return stream.all();
 }

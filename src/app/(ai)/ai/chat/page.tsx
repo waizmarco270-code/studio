@@ -2,9 +2,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { ChatPanel } from "./_components/chat-panel";
-import { RecentChats } from "./_components/recent-chats";
 import { PromptTemplates } from "./_components/prompt-templates";
 import {
   Sheet,
@@ -16,7 +14,7 @@ import { TokenEntry } from "./_components/token-entry";
 import { Loader2 } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "@/hooks/use-toast";
-import { getChats, createChat } from "./actions";
+import { getChats } from "./actions";
 import { useRouter, useSearchParams } from "next/navigation";
 
 
@@ -75,7 +73,9 @@ export default function ChatPage() {
      startTransition(async () => {
       const chats = await getChats(userId);
       if(chats.length > 0) {
-          router.replace(`/ai/chat?id=${chats[0].id}`);
+          // Find the newest chat, which might not be the first one if creation is slow
+          const sortedChats = chats.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+          router.replace(`/ai/chat?id=${sortedChats[0].id}`);
       }
      });
   }
@@ -142,5 +142,3 @@ export default function ChatPage() {
     </>
   );
 }
-
-    

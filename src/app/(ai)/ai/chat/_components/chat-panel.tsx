@@ -11,12 +11,12 @@ import {
   PanelLeft,
   BookMarked,
   Settings,
+  X as VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./chat-message";
-import { implementAIIdentity } from "@/ai/flows/implement-ai-identity";
 import { summarizeUploadedFiles } from "@/ai/flows/summarize-uploaded-files";
 import { useToast } from "@/hooks/use-toast";
 import { AvatarCanvas } from "../../avatar/_components/avatar-canvas";
@@ -27,7 +27,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Card } from "@/components/ui/card";
 import { useTypingEffect } from "@/hooks/use-typing-effect";
 import type { Message } from "@/app/(ai)/ai/chat/actions";
-import { getChat, saveChat } from "@/app/(ai)/ai/chat/actions";
+import { getChat, saveChat, streamChat } from "@/app/(ai)/ai/chat/actions";
 import Link from "next/link";
 
 
@@ -98,7 +98,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
       startTransition(async () => {
         const chat = await getChat(chatId, userId);
         if (chat && chat.messages && chat.messages.length > 0) {
-          setMessages(chat.messages);
+          setMessages(chat.messages.map(m => ({role: m.role, content: m.content})));
         } else {
           setMessages(initialMessages);
         }
@@ -186,15 +186,21 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
 
     startTransition(async () => {
       try {
-        const result = await implementAIIdentity(text);
+        const assistantMessage: Message = { role: 'assistant', content: '', stream: streamChat(newMessages) };
+        setMessages(prev => [...prev, assistantMessage]);
+
+        // Wait for the stream to finish and get the full content
+        let fullResponse = '';
+        for await (const chunk of assistantMessage.stream!) {
+            fullResponse += chunk;
+        }
+
         if (isTtsEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
-            const utterance = new SpeechSynthesisUtterance(result);
+            const utterance = new SpeechSynthesisUtterance(fullResponse);
             window.speechSynthesis.speak(utterance);
         }
         
-        const aiMessage: Message = { role: "assistant", content: result };
-        const finalMessages = [...newMessages, aiMessage];
-        setMessages(finalMessages);
+        const finalMessages = [...newMessages, { role: "assistant" as const, content: fullResponse }];
         
         const wasNewChat = chatId === 'new';
         await saveChat(chatId, userId, finalMessages);
@@ -313,7 +319,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
       <main className="flex-1 overflow-y-auto">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
           <div className="px-4 py-6 space-y-6 max-w-3xl mx-auto">
-            {messages.length === 0 || (chatId === 'new' && messages.length === initialMessages.length) && !fileSummary ? (
+            {chatId === 'new' && messages.length === initialMessages.length && !fileSummary ? (
                  <div className="flex flex-col items-center justify-center text-center pt-10 md:pt-16">
                     <div className="h-32 w-32 mb-4">
                         <AvatarCanvas isAnimated={!isPending} />
@@ -336,7 +342,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                     <ChatMessage key={index} {...message} />
                 ))
             )}
-            {isPending && !fileSummary && (
+            {isPending && messages[messages.length -1]?.role !== 'assistant' && (
               <ChatMessage
                 role="assistant"
                 content={<Loader2 className="h-5 w-5 animate-spin" />}
@@ -449,5 +455,3 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     </div>
   );
 }
-
-    
