@@ -3,12 +3,12 @@
 import * as React from "react"
 import { GripVertical } from "lucide-react"
 import {
-  ResizablePanelGroup as ResizablePanelGroupPrimitive,
-  ResizablePanel as ResizablePanelPrimitive,
-  ResizableHandle as ResizableHandlePrimitive,
-  type ResizablePanelGroupProps as ResizablePanelGroupPrimitiveProps,
-  type ResizablePanelProps as ResizablePanelPrimitiveProps,
-  type ResizableHandleProps as ResizableHandlePrimitiveProps,
+  PanelGroup as ResizablePanelGroupPrimitive,
+  Panel as ResizablePanelPrimitive,
+  PanelResizeHandle as ResizableHandlePrimitive,
+  type PanelGroupProps as ResizablePanelGroupProps,
+  type PanelProps as ResizablePanelProps,
+  type PanelResizeHandleProps,
 } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 function ResizablePanelGroup({
   className,
   ...props
-}: ResizablePanelGroupPrimitiveProps) {
+}: ResizablePanelGroupProps) {
   return (
     <ResizablePanelGroupPrimitive
       className={cn(
@@ -38,7 +38,7 @@ function ResizableHandle({
   className,
   withHandle,
   ...props
-}: ResizableHandlePrimitiveProps & {
+}: PanelResizeHandleProps & {
   withHandle?: boolean
 }) {
   return (
