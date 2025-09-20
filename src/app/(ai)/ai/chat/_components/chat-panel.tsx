@@ -7,12 +7,10 @@ import {
   Loader2,
   Mic,
   MicOff,
-  Volume2,
-  VolumeX,
   Paperclip,
-  Trash2,
   PanelLeft,
   BookMarked,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,16 +20,15 @@ import { implementAIIdentity } from "@/ai/flows/implement-ai-identity";
 import { summarizeUploadedFiles } from "@/ai/flows/summarize-uploaded-files";
 import { useToast } from "@/hooks/use-toast";
 import { AvatarCanvas } from "../../avatar/_components/avatar-canvas";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { FileUploadDialog } from "./file-upload-dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Card } from "@/components/ui/card";
 import { useTypingEffect } from "@/hooks/use-typing-effect";
-import { TokenEntry } from "./token-entry";
 import type { Message } from "@/app/(ai)/ai/chat/actions";
 import { getChat, saveChat } from "@/app/(ai)/ai/chat/actions";
+import Link from "next/link";
 
 
 const examplePrompts = [
@@ -78,7 +75,6 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [isListening, setIsListening] = useState(false);
-  const [isTtsEnabled, setIsTtsEnabled] = useState(true);
   const recognitionRef = useRef<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,16 +83,23 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
   const [fileSummary, setFileSummary] = useState<{ name: string; summary: string | null; progress: string | null } | null>(null);
   const { toggleSidebar } = useSidebar();
   const placeholder = useTypingEffect(placeholderPrompts, 100, 2000);
-  const [initialLoad, setInitialLoad] = useState(true);
+  const [isTtsEnabled, setIsTtsEnabled] = useState(false);
+
+   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const tts = localStorage.getItem('marco-ai-tts-enabled') === 'true';
+      setIsTtsEnabled(tts);
+    }
+  }, []);
 
   useEffect(() => {
+    // When the chat ID changes, fetch the corresponding chat messages
     if (chatId !== 'new' && userId) {
       startTransition(async () => {
         const chat = await getChat(chatId, userId);
         if (chat && chat.messages && chat.messages.length > 0) {
           setMessages(chat.messages);
         } else {
-          // If chat is empty or doesn't exist, start with initial messages
           setMessages(initialMessages);
         }
       });
@@ -172,8 +175,8 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
 
     const newUserMessage: Message = { role: "user", content: text };
     
-    // Check if the current message list is the initial one
-    const currentMessages = messages.length === initialMessages.length && messages[1].content === initialMessages[1].content
+    // Use initial messages only for brand new chats that have no history
+    const currentMessages = chatId === 'new' && messages.length === initialMessages.length
         ? []
         : messages;
 
@@ -263,15 +266,6 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
   const handleFileButtonClick = () => {
     fileInputRef.current?.click();
   };
-  
-  const handleClearHistory = () => {
-    // This now needs to be handled at the page level to delete from firestore
-    toast({
-        title: "Action Not Implemented",
-        description: "Clearing chat from the header will be part of a future update.",
-    });
-  };
-
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
@@ -302,34 +296,24 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
               <BookMarked className="h-5 w-5" />
               <span className="sr-only">Show Templates</span>
             </Button>
-          <Button
+            <Button asChild
               type="button"
               variant="ghost"
               size="icon"
-              onClick={handleClearHistory}
-              title="Clear current chat"
+              title="Settings"
             >
-              <Trash2 className="h-5 w-5" />
-              <span className="sr-only">Clear History</span>
+              <Link href="/ai/settings">
+                <Settings className="h-5 w-5" />
+                <span className="sr-only">Settings</span>
+              </Link>
             </Button>
-          <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsTtsEnabled(!isTtsEnabled)}
-              title="Toggle Text-to-Speech"
-            >
-              {isTtsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-              <span className="sr-only">Toggle TTS</span>
-            </Button>
-          <ThemeToggle />
          </div>
       </header>
 
       <main className="flex-1 overflow-y-auto">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
           <div className="px-4 py-6 space-y-6 max-w-3xl mx-auto">
-            {messages.length === 0 || (messages.length === initialMessages.length && messages[1].content === initialMessages[1].content) && !fileSummary && chatId === 'new' ? (
+            {messages.length === 0 || (chatId === 'new' && messages.length === initialMessages.length) && !fileSummary ? (
                  <div className="flex flex-col items-center justify-center text-center pt-10 md:pt-16">
                     <div className="h-32 w-32 mb-4">
                         <AvatarCanvas isAnimated={!isPending} />
@@ -465,3 +449,5 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     </div>
   );
 }
+
+    

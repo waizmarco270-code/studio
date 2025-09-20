@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -117,5 +118,21 @@ export default {
       }),
     },
   },
+  safelist: [
+    'theme-zinc',
+    'theme-slate',
+    'theme-stone',
+    'theme-gray',
+    'theme-neutral',
+    'theme-red',
+    'theme-rose',
+    'theme-orange',
+    'theme-green',
+    'theme-blue',
+    'theme-yellow',
+    'theme-violet',
+  ],
   plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
 } satisfies Config;
+
+    

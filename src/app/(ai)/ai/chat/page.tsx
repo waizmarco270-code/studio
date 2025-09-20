@@ -17,12 +17,18 @@ import { Loader2 } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "@/hooks/use-toast";
 import { getChats, createChat } from "./actions";
+import { useRouter, useSearchParams } from "next/navigation";
+
 
 export default function ChatPage() {
   const [showTemplates, setShowTemplates] = useState(false);
-  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const chatId = searchParams.get('id') || 'new';
+
   const [userId, setUserId] = useState<string>('');
-  const [chatId, setChatId] = useState<string>('new');
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -52,30 +58,24 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (userId) {
+    // If access is granted but we are on the 'new' chat url,
+    // check for existing chats and redirect to the latest one.
+    if (isVerified && userId && chatId === 'new') {
        startTransition(async () => {
          const chats = await getChats(userId);
          if (chats.length > 0) {
-            setChatId(chats[0].id);
-         } else {
-            // No need to create a chat here, 'new' chat will be created on first message
-            setChatId('new');
+            // Redirect to the most recent chat
+            router.replace(`/ai/chat?id=${chats[0].id}`);
          }
        });
     }
-  }, [userId]);
-
-  const handleNewChat = () => {
-    setChatId('new');
-  }
+  }, [userId, isVerified, chatId, router]);
 
   const handleChatCreated = async () => {
-     // This function is triggered after a 'new' chat has its first message saved.
-     // We refetch the chats to get the new chat's ID and set it as active.
      startTransition(async () => {
       const chats = await getChats(userId);
       if(chats.length > 0) {
-          setChatId(chats[0].id);
+          router.replace(`/ai/chat?id=${chats[0].id}`);
       }
      });
   }
@@ -85,7 +85,7 @@ export default function ChatPage() {
      return () => {
         window.removeEventListener('chatCreated', handleChatCreated);
      }
-  }, [userId]);
+  }, [userId, router]);
 
 
   const onVerificationSuccess = () => {
@@ -123,16 +123,7 @@ export default function ChatPage() {
 
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <RecentChats 
-            userId={userId} 
-            activeChatId={chatId} 
-            onChatSelect={setChatId}
-            onNewChat={handleNewChat}
-        />
-      </Sidebar>
-      <SidebarInset>
+    <>
         <ChatPanel 
             onShowTemplates={() => setShowTemplates(true)} 
             chatId={chatId}
@@ -148,8 +139,8 @@ export default function ChatPage() {
             </div>
           </SheetContent>
         </Sheet>
-      </SidebarInset>
-    </SidebarProvider>
+    </>
   );
 }
 
+    

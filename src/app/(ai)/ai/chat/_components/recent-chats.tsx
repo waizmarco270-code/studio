@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, MessageSquare, PanelLeft, Trash2 } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { Plus, MessageSquare, PanelLeft, Trash2, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   SidebarHeader,
@@ -13,21 +13,30 @@ import {
   useSidebar,
   SidebarMenuAction,
   SidebarMenuSkeleton,
+  SidebarFooter,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import type { Chat } from "@/app/(ai)/ai/chat/actions";
 import { getChats, createChat } from "@/app/(ai)/ai/chat/actions";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
+
 
 interface RecentChatsProps {
   userId: string;
-  activeChatId: string;
-  onChatSelect: (chatId: string) => void;
-  onNewChat: () => void;
 }
 
-export function RecentChats({ userId, activeChatId, onChatSelect, onNewChat }: RecentChatsProps) {
+export function RecentChats({ userId }: RecentChatsProps) {
   const { toggleSidebar } = useSidebar();
   const [chats, setChats] = useState<Chat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+
+  const activeChatId = usePathname().split('id=')[1] || 'new';
  
   useEffect(() => {
     if (userId) {
@@ -38,12 +47,43 @@ export function RecentChats({ userId, activeChatId, onChatSelect, onNewChat }: R
       });
     }
   }, [userId]);
+  
+  useEffect(() => {
+    const handleChatCreated = () => {
+        startTransition(async() => {
+            setIsLoading(true);
+            const userChats = await getChats(userId);
+            setChats(userChats);
+            setIsLoading(false);
+        });
+    }
+    window.addEventListener('chatCreated', handleChatCreated);
+    return () => window.removeEventListener('chatCreated', handleChatCreated);
+  }, [userId]);
 
   const handleNewChat = async () => {
     const newChat = await createChat(userId);
     setChats([newChat, ...chats]);
-    onNewChat();
+    router.push(`/ai/chat?id=${newChat.id}`);
   }
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('marco-ai-access-granted');
+      localStorage.removeItem('marco-ai-user-id');
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      window.location.reload();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not log out. Please clear your site data manually.",
+      });
+    }
+  };
 
   return (
     <>
@@ -69,12 +109,14 @@ export function RecentChats({ userId, activeChatId, onChatSelect, onNewChat }: R
             {chats.map((chat) => (
                  <SidebarMenuItem key={chat.id}>
                     <SidebarMenuButton
-                        onClick={() => onChatSelect(chat.id)}
+                        asChild
                         isActive={activeChatId === chat.id}
                         tooltip={chat.title}
                     >
+                      <Link href={`/ai/chat?id=${chat.id}`}>
                         <MessageSquare />
                         <span>{chat.title}</span>
+                      </Link>
                     </SidebarMenuButton>
                      <SidebarMenuAction showOnHover>
                         <Trash2 />
@@ -84,6 +126,25 @@ export function RecentChats({ userId, activeChatId, onChatSelect, onNewChat }: R
         </SidebarMenu>
         )}
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarSeparator />
+         <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === '/ai/settings'}>
+                 <Link href="/ai/settings">
+                  <Settings />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton onClick={handleLogout} variant="ghost">
+                  <LogOut />
+                  <span>Logout</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+         </SidebarMenu>
+      </SidebarFooter>
     </>
   );
 }
