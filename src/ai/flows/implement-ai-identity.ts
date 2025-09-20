@@ -72,5 +72,5 @@ export async function streamAIIdentity(
     system: SYSTEM_PROMPT,
   });
 
-  return stream.all();
+  return stream;
 }
