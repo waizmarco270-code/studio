@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Plus, MessageSquare, PanelLeft, Trash2, Settings, LogOut } from "lucide-react";
+import { Plus, MessageSquare, PanelLeft, Trash2, Settings, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   SidebarHeader,
@@ -36,10 +36,15 @@ export function RecentChats({ userId }: RecentChatsProps) {
   const pathname = usePathname();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [userName, setUserName] = useState<string>('');
 
   const activeChatId = pathname.split('id=')[1] || 'new';
  
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const name = localStorage.getItem('marco-ai-user-name');
+        setUserName(name || 'MindMate User');
+    }
     if (userId) {
       setIsLoading(true);
       getChats(userId).then((userChats) => {
@@ -71,6 +76,7 @@ export function RecentChats({ userId }: RecentChatsProps) {
     try {
       localStorage.removeItem('marco-ai-access-granted');
       localStorage.removeItem('marco-ai-user-id');
+      localStorage.removeItem('marco-ai-user-name');
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out.",
@@ -130,6 +136,12 @@ export function RecentChats({ userId }: RecentChatsProps) {
         <SidebarSeparator />
          <SidebarMenu>
             <SidebarMenuItem>
+              <SidebarMenuButton tooltip={userName}>
+                <User />
+                <span>{userName}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/ai/settings'}>
                  <Link href="/ai/settings">
                   <Settings />
@@ -148,5 +160,3 @@ export function RecentChats({ userId }: RecentChatsProps) {
     </>
   );
 }
-
-    

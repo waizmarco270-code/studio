@@ -1,3 +1,4 @@
+
 'use server';
 
 import { firestore } from '@/lib/firebase';
@@ -6,6 +7,7 @@ import { collection, getDocs, query, where, writeBatch } from 'firebase/firestor
 interface VerificationResult {
   success: boolean;
   error?: string;
+  userName?: string;
 }
 
 export async function verifyAndConsumeToken(token: string): Promise<VerificationResult> {
@@ -34,7 +36,7 @@ export async function verifyAndConsumeToken(token: string): Promise<Verification
     batch.update(doc.ref, { isUsed: true });
     await batch.commit();
 
-    return { success: true };
+    return { success: true, userName: tokenData.userName || 'MindMate User' };
 
   } catch (e) {
     console.error('Error verifying token:', e);

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition } from "react";
@@ -10,7 +11,7 @@ import { Loader2 } from "lucide-react";
 import Image from "next/image";
 
 interface TokenEntryProps {
-    onVerificationSuccess: () => void;
+    onVerificationSuccess: (userName: string) => void;
 }
 
 export function TokenEntry({ onVerificationSuccess }: TokenEntryProps) {
@@ -30,14 +31,14 @@ export function TokenEntry({ onVerificationSuccess }: TokenEntryProps) {
         
         // Developer-only master key
         if (token === "dev-mode-unlock") {
-            onVerificationSuccess();
+            onVerificationSuccess("Developer");
             return;
         }
 
         startTransition(async () => {
             const result = await verifyAndConsumeToken(token);
-            if (result.success) {
-                onVerificationSuccess();
+            if (result.success && result.userName) {
+                onVerificationSuccess(result.userName);
             } else {
                 toast({
                     variant: "destructive",

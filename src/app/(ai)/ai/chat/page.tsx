@@ -89,16 +89,17 @@ export default function ChatPage() {
   }, [userId, router]);
 
 
-  const onVerificationSuccess = () => {
+  const onVerificationSuccess = (userName: string) => {
     try {
       const newUserId = uuidv4();
       localStorage.setItem("marco-ai-access-granted", "true");
       localStorage.setItem("marco-ai-user-id", newUserId);
+      localStorage.setItem("marco-ai-user-name", userName);
       setIsVerified(true);
       setUserId(newUserId);
       toast({
         title: "Access Granted",
-        description: "Welcome to Marco AI!",
+        description: `Welcome to Marco AI, ${userName}!`,
       });
     } catch (error) {
       console.error("Could not access localStorage.", error);
