@@ -30,11 +30,9 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Card } from "@/components/ui/card";
 import { useTypingEffect } from "@/hooks/use-typing-effect";
 import { TokenEntry } from "./token-entry";
+import type { Message } from "@/app/(ai)/ai/chat/actions";
+import { getChat, saveChat } from "@/app/(ai)/ai/chat/actions";
 
-type Message = {
-  role: "user" | "assistant";
-  content: string | React.ReactNode;
-};
 
 const examplePrompts = [
   "Explain me about MindMate.",
@@ -70,9 +68,11 @@ declare global {
 
 interface ChatPanelProps {
   onShowTemplates: () => void;
+  chatId: string;
+  userId: string;
 }
 
-export function ChatPanel({ onShowTemplates }: ChatPanelProps) {
+export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -88,43 +88,21 @@ export function ChatPanel({ onShowTemplates }: ChatPanelProps) {
   const { toggleSidebar } = useSidebar();
   const placeholder = useTypingEffect(placeholderPrompts, 100, 2000);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [isVerified, setIsVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const accessGranted = localStorage.getItem('marco-ai-access-granted');
-        if (accessGranted === 'true') {
-          setIsVerified(true);
+    if (chatId !== 'new' && userId) {
+      startTransition(async () => {
+        const chat = await getChat(chatId, userId);
+        if (chat && chat.messages) {
+          setMessages(chat.messages);
         } else {
-          setIsVerified(false);
+          setMessages(initialMessages);
         }
-
-        const storedMessages = localStorage.getItem('chatMessages');
-        if (storedMessages) {
-          const parsedMessages = JSON.parse(storedMessages);
-          if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-            setMessages(parsedMessages);
-          }
-        }
-      } catch (error) {
-        console.error("Could not access localStorage.", error);
-        setIsVerified(false);
-      } finally {
-        setInitialLoad(false);
-      }
+      });
+    } else {
+      setMessages(initialMessages);
     }
-  }, []);
-
-  useEffect(() => {
-    if (!initialLoad && messages.length > 0) {
-      try {
-        localStorage.setItem('chatMessages', JSON.stringify(messages));
-      } catch (error) {
-        console.error("Could not access localStorage.", error);
-      }
-    }
-  }, [messages, initialLoad]);
+  }, [chatId, userId]);
 
 
   useEffect(() => {
@@ -189,7 +167,7 @@ export function ChatPanel({ onShowTemplates }: ChatPanelProps) {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!text.trim() || isPending || !isVerified) return;
+    if (!text.trim() || isPending) return;
 
     const newUserMessage: Message = { role: "user", content: text };
     const newMessages = [...messages, newUserMessage];
@@ -205,7 +183,14 @@ export function ChatPanel({ onShowTemplates }: ChatPanelProps) {
         }
         
         const aiMessage: Message = { role: "assistant", content: result };
-        setMessages([...newMessages, aiMessage]);
+        const finalMessages = [...newMessages, aiMessage];
+        setMessages(finalMessages);
+        await saveChat(chatId, userId, finalMessages);
+        
+        // If it was a new chat, we need to let the parent know to refresh chat list and potentially update the URL
+        if (chatId === 'new') {
+            window.dispatchEvent(new CustomEvent('chatCreated'));
+        }
 
       } catch (error) {
         const errorMessage =
@@ -218,7 +203,7 @@ export function ChatPanel({ onShowTemplates }: ChatPanelProps) {
             : errorMessage,
         });
         
-        setMessages(newMessages.slice(0, -1)); 
+        setMessages(newMessages); 
       }
     });
   };
@@ -272,48 +257,13 @@ export function ChatPanel({ onShowTemplates }: ChatPanelProps) {
   };
   
   const handleClearHistory = () => {
-    setMessages(initialMessages);
-    setFileSummary(null);
-    try {
-      localStorage.removeItem('chatMessages');
-    } catch (error) {
-      console.error("Could not access localStorage.", error);
-    }
+    // This now needs to be handled at the page level to delete from firestore
     toast({
-        title: "Chat Cleared",
-        description: "The current conversation has been removed.",
+        title: "Action Not Implemented",
+        description: "Clearing chat from the header will be part of a future update.",
     });
   };
 
-  const onVerificationSuccess = () => {
-    try {
-      localStorage.setItem("marco-ai-access-granted", "true");
-      setIsVerified(true);
-      toast({
-        title: "Access Granted",
-        description: "Welcome to Marco AI!",
-      });
-    } catch (error) {
-      console.error("Could not access localStorage.", error);
-       toast({
-        variant: "destructive",
-        title: "Storage Error",
-        description: "Could not save access status. Please enable cookies/site data.",
-      });
-    }
-  }
-
-  if (isVerified === null) {
-      return (
-          <div className="flex h-screen w-full items-center justify-center bg-background">
-              <Loader2 className="h-10 w-10 animate-spin" />
-          </div>
-      )
-  }
-
-  if (!isVerified) {
-      return <TokenEntry onVerificationSuccess={onVerificationSuccess} />
-  }
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
@@ -374,7 +324,7 @@ export function ChatPanel({ onShowTemplates }: ChatPanelProps) {
             {messages.length <= initialMessages.length && !fileSummary ? (
                  <div className="flex flex-col items-center justify-center text-center pt-10 md:pt-16">
                     <div className="h-32 w-32 mb-4">
-                        <AvatarCanvas isAnimated={true} />
+                        <AvatarCanvas isAnimated={!isPending} />
                     </div>
                      <h1 className="mt-4 text-3xl font-bold">How can I help you today?</h1>
                      <div className="mt-8 grid grid-cols-2 gap-3 w-full max-w-md">
@@ -507,3 +457,5 @@ export function ChatPanel({ onShowTemplates }: ChatPanelProps) {
     </div>
   );
 }
+
+    
