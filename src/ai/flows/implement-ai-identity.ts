@@ -66,12 +66,18 @@ export async function streamAIIdentity(
   history: MessageData[],
   newMessage: string
 ): Promise<Stream<string>> {
-  const {stream} = ai.generateStream({
+  const {stream} = await ai.generateStream({
     model: 'googleai/gemini-2.5-flash',
     history,
     prompt: newMessage,
     system: SYSTEM_PROMPT,
   });
 
-  return stream;
+  async function* transformStream(): AsyncGenerator<string> {
+    for await (const chunk of stream) {
+      yield chunk.text;
+    }
+  }
+
+  return transformStream();
 }
