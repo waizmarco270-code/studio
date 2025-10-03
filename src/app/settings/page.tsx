@@ -165,7 +165,7 @@ export default function SettingsPage() {
                     onCheckedChange={handleTtsChange}
                   />
                 </div>
-              </Content>
+              </CardContent>
             </Card>
             
             <Card>
@@ -190,5 +190,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
