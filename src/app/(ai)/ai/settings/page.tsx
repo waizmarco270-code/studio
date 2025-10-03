@@ -96,7 +96,7 @@ export default function SettingsPage() {
         <header className="flex h-16 items-center justify-between border-b bg-card px-4 shrink-0">
          <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <Image src="/logo.svg" alt="MindMate Logo" width={32} height={32} />
+              <Image src="/logo.jpg" alt="MindMate Logo" width={32} height={32} />
               <span className="font-semibold text-lg hidden md:block">Settings</span>
             </div>
          </div>
@@ -189,5 +189,7 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
 
     

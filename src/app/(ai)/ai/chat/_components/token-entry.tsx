@@ -53,7 +53,7 @@ export function TokenEntry({ onVerificationSuccess }: TokenEntryProps) {
         <div className="flex h-screen w-full items-center justify-center bg-background px-4">
             <Card className="w-full max-w-sm">
                 <CardHeader className="items-center text-center">
-                    <Image src="/logo.svg" alt="MindMate Logo" width={48} height={48} className="mb-4" />
+                    <Image src="/logo.jpg" alt="MindMate Logo" width={48} height={48} className="mb-4" />
                     <CardTitle className="text-2xl">Verify Your Access</CardTitle>
                     <CardDescription>
                         Please enter the one-time access token you received from MindMate.
@@ -85,3 +85,5 @@ export function TokenEntry({ onVerificationSuccess }: TokenEntryProps) {
         </div>
     );
 }
+
+    

@@ -291,7 +291,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
               <span className="sr-only">Toggle Sidebar</span>
             </Button>
             <div className="flex items-center gap-2">
-              <Image src="/logo.svg" alt="MindMate Logo" width={32} height={32} />
+              <Image src="/logo.jpg" alt="MindMate Logo" width={32} height={32} />
               <span className="font-semibold text-lg hidden md:block">MindMate</span>
             </div>
          </div>
@@ -459,3 +459,5 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     </div>
   );
 }
+
+    

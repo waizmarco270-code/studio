@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "MarcoAI: Your MindMate Companion",
   description: "A production-ready, multi-page Marco AI assistant for the MindMate app.",
   icons: {
-    icon: "/logo.svg",
+    icon: "/logo.jpg",
   },
 };
 
@@ -45,3 +45,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
