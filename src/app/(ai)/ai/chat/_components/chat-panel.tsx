@@ -171,11 +171,11 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!text.trim() || isPending) return;
+    if (!text.trim()) return;
+    if (isPending) return;
 
     const newUserMessage: Message = { role: "user", content: text };
     
-    // Use initial messages only for brand new chats that have no history
     const currentMessages = chatId === 'new' && messages.length === initialMessages.length
         ? []
         : messages;
@@ -190,14 +190,12 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
         const assistantMessage: Message = { role: 'assistant', content: '', stream };
         setMessages(prev => [...prev, assistantMessage]);
 
-        // Wait for the stream to finish and get the full content
         let fullResponse = '';
         if (assistantMessage.stream) {
           for await (const chunk of assistantMessage.stream) {
               fullResponse += chunk;
           }
         }
-
 
         if (isTtsEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
             const utterance = new SpeechSynthesisUtterance(fullResponse);
@@ -228,6 +226,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
       }
     });
   };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,7 +348,11 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
             {isPending && messages[messages.length -1]?.role !== 'assistant' && (
               <ChatMessage
                 role="assistant"
-                content={<Loader2 className="h-5 w-5 animate-spin" />}
+                content={
+                  <div className="w-16 h-16 mx-auto">
+                    <AvatarCanvas isAnimated={isPending} />
+                  </div>
+                }
               />
             )}
              {fileSummary && (
@@ -459,5 +462,3 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     </div>
   );
 }
-
-    
