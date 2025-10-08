@@ -55,20 +55,6 @@ export default function ChatPage() {
     }
   }, []);
 
-  useEffect(() => {
-    // If access is granted but we are on the 'new' chat url,
-    // check for existing chats and redirect to the latest one.
-    if (isVerified && userId && chatId === 'new') {
-       startTransition(async () => {
-         const chats = await getChats(userId);
-         if (chats.length > 0) {
-            // Redirect to the most recent chat
-            router.replace(`/ai/chat?id=${chats[0].id}`);
-         }
-       });
-    }
-  }, [userId, isVerified, chatId, router]);
-
   const handleChatCreated = async () => {
      startTransition(async () => {
       if (!userId) return;

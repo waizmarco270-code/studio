@@ -33,7 +33,7 @@ export async function getChats(userId: string): Promise<Chat[]> {
   try {
     if (!userId) return [];
     const chatsRef = getChatsRef(userId);
-    const q = query(chatsRef, orderBy('createdAt', 'desc'));
+    const q = query(chatsRef, orderBy('createdAt', 'desc'), limit(3));
     const querySnapshot = await getDocs(q);
     
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chat));
