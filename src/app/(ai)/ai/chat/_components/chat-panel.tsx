@@ -11,6 +11,7 @@ import {
   PanelLeft,
   BookMarked,
   Settings,
+  ArrowLeft,
   X as VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -289,6 +290,12 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
               <PanelLeft />
               <span className="sr-only">Toggle Sidebar</span>
             </Button>
+            <Button asChild variant="ghost" size="icon">
+              <a href="https://mindmateofficial.vercel.app/dashboard" target="_top">
+                <ArrowLeft />
+                <span className="sr-only">Back to MindMate</span>
+              </a>
+            </Button>
             <div className="flex items-center gap-2">
               <Image src="/logo.jpg" alt="MindMate Logo" width={32} height={32} />
               <span className="font-semibold text-lg hidden md:block">MindMate</span>
@@ -462,3 +469,5 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     </div>
   );
 }
+
+    
