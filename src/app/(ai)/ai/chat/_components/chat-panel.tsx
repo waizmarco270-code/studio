@@ -427,7 +427,9 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                     disabled={isPending || !input.trim()}
                   >
                     {isPending ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <div className="w-8 h-8">
+                        <AvatarCanvas isAnimated={isPending} />
+                      </div>
                     ) : (
                       <Send className="h-5 w-5" />
                     )}
@@ -469,5 +471,3 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     </div>
   );
 }
-
-    
