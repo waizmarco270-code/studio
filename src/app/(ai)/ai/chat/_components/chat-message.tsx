@@ -1,19 +1,21 @@
 "use client";
 
-import { Bot, User } from "lucide-react";
+import { User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import type { Stream } from "@/app/(ai)/ai/chat/actions";
 import { useStreamingText } from "@/hooks/use-streaming-text";
+import { AvatarCanvas } from "../../avatar/_components/avatar-canvas";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string | React.ReactNode;
   stream?: Stream;
+  isPending?: boolean;
 }
 
-export function ChatMessage({ role, content, stream }: ChatMessageProps) {
+export function ChatMessage({ role, content, stream, isPending }: ChatMessageProps) {
   const isUser = role === "user";
   const streamedContent = useStreamingText(stream);
 
@@ -26,9 +28,7 @@ export function ChatMessage({ role, content, stream }: ChatMessageProps) {
     >
       {!isUser && (
         <Avatar className="h-8 w-8 border">
-          <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary">
-            <Bot className="h-5 w-5" />
-          </div>
+          <AvatarCanvas isAnimated={isPending || (streamedContent.length > 0 && !!stream) || !!content} />
         </Avatar>
       )}
       <div
@@ -39,7 +39,11 @@ export function ChatMessage({ role, content, stream }: ChatMessageProps) {
             : "bg-card text-foreground"
         )}
       >
-        {stream ? (
+        {isPending ? (
+           <div className="w-8 h-8">
+              <AvatarCanvas isAnimated={true} />
+           </div>
+        ) : stream ? (
           <ReactMarkdown
             className="prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-p:m-0 prose-headings:font-semibold prose-headings:text-foreground prose-headings:m-0 prose-ul:m-0 prose-ol:m-0 prose-table:my-2 prose-th:px-2 prose-th:py-1 prose-td:px-2 prose-td:py-1 prose-th:border prose-td:border"
           >

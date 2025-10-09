@@ -205,6 +205,8 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
         
         const finalMessages = [...newMessages, { role: "assistant" as const, content: fullResponse }];
         
+        setMessages(finalMessages); // Update state with the final message to remove stream
+
         const wasNewChat = chatId === 'new';
         await saveChat(chatId, userId, finalMessages);
         
@@ -375,15 +377,8 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                     </div>
                 ))
             )}
-            {isPending && messages[messages.length -1]?.role !== 'assistant' && (
-              <ChatMessage
-                role="assistant"
-                content={
-                  <div className="w-16 h-16 mx-auto">
-                    <AvatarCanvas isAnimated={isPending} />
-                  </div>
-                }
-              />
+            {isPending && messages[messages.length -1]?.role === 'user' && (
+              <ChatMessage role="assistant" isPending={true} content="" />
             )}
              {fileSummary && (
               <div className="rounded-lg border bg-card p-4">
