@@ -412,18 +412,21 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
             onSubmit={handleSubmit}
             className="relative"
           >
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={placeholder}
-                className="min-h-[52px] w-full resize-none rounded-xl border-2 border-border bg-muted py-3 pl-4 pr-24 shadow-sm"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    handleSubmit(e);
-                  }
-                }}
-                disabled={isPending}
-              />
+            <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-xl blur-sm opacity-0 group-focus-within:opacity-75 transition-opacity duration-300 animate-tilt"></div>
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={placeholder}
+                  className="relative min-h-[52px] w-full resize-none rounded-xl border-2 border-border bg-muted py-3 pl-4 pr-24 shadow-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      handleSubmit(e);
+                    }
+                  }}
+                  disabled={isPending}
+                />
+            </div>
               <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
                  <Button
                   type="button"
