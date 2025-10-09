@@ -413,7 +413,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
             className="relative"
           >
             <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-xl blur-sm opacity-0 group-focus-within:opacity-75 transition-opacity duration-300 animate-tilt"></div>
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-xl blur-sm opacity-75 transition-opacity duration-300 animate-tilt"></div>
                 <Textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
