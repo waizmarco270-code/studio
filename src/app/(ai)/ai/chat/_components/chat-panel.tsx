@@ -411,29 +411,17 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
         </ScrollArea>
       </main>
 
-      <footer className="w-full shrink-0 border-t bg-background">
-        <div className="mx-auto w-full max-w-3xl p-4">
+      <footer className="w-full shrink-0 bg-background">
+        <div className="mx-auto w-full max-w-3xl px-4 pb-2 pt-2">
           <form
             onSubmit={handleSubmit}
-            className="flex w-full items-start gap-2"
+            className="relative"
           >
-            <div className="relative flex h-auto min-h-12 w-full items-center">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute left-2 top-1/2 -translate-y-1/2 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-                onClick={handleFileButtonClick}
-                disabled={isPending}
-              >
-                <Paperclip className="h-5 w-5" />
-                <span className="sr-only">Upload file</span>
-              </Button>
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={placeholder}
-                className="min-h-[48px] w-full resize-none rounded-full border-2 border-border bg-muted py-3 pl-12 pr-20 shadow-sm"
+                className="min-h-[60px] w-full resize-none rounded-2xl border-2 border-border bg-muted py-[1.1rem] pl-4 pr-24 shadow-sm"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     handleSubmit(e);
@@ -441,7 +429,19 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                 }}
                 disabled={isPending}
               />
-              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+              <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
+                 <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={handleFileButtonClick}
+                  disabled={isPending}
+                  title="Upload file"
+                >
+                  <Paperclip className="h-5 w-5" />
+                  <span className="sr-only">Upload file</span>
+                </Button>
                 {input.trim() || isPending ? (
                   <Button
                     type="submit"
@@ -466,6 +466,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                     className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
                     onClick={handleMicClick}
                     disabled={isPending}
+                    title="Use microphone"
                   >
                     {isListening ? (
                       <MicOff className="h-5 w-5 text-destructive" />
@@ -476,7 +477,6 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                   </Button>
                 )}
               </div>
-            </div>
             <input
               type="file"
               ref={fileInputRef}
