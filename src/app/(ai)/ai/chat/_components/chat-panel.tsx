@@ -418,7 +418,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={placeholder}
-                  className="relative min-h-[52px] w-full resize-none rounded-xl border-2 border-transparent bg-background bg-clip-padding py-3 pl-4 pr-24"
+                  className="relative min-h-[52px] w-full resize-none rounded-xl border-2 border-transparent bg-background bg-clip-padding py-3 pl-4 pr-24 focus-visible:ring-0 focus-visible:outline-none"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       handleSubmit(e);
