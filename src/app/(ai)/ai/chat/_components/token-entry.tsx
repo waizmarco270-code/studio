@@ -50,7 +50,7 @@ export function TokenEntry({ onVerificationSuccess }: TokenEntryProps) {
     };
 
     return (
-        <div className="flex h-screen w-full items-center justify-center bg-background px-4">
+        <div className="flex min-h-screen w-full items-center justify-center bg-background px-4">
             <Card className="w-full max-w-sm">
                 <CardHeader className="items-center text-center">
                     <Image src="/logo.jpg" alt="MindMate Logo" width={48} height={48} className="mb-4" />
