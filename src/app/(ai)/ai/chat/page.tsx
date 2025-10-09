@@ -60,7 +60,6 @@ export default function ChatPage() {
       if (!userId) return;
       const chats = await getChats(userId);
       if(chats.length > 0) {
-          // Find the newest chat, which might not be the first one if creation is slow
           const sortedChats = chats.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
           router.replace(`/ai/chat?id=${sortedChats[0].id}`);
       }
@@ -97,7 +96,7 @@ export default function ChatPage() {
     }
   }
 
-  if (isVerified === null || (isVerified && isPending && chatId === 'new')) {
+  if (isVerified === null) {
       return (
           <div className="flex h-screen w-full items-center justify-center bg-background">
               <Loader2 className="h-10 w-10 animate-spin" />

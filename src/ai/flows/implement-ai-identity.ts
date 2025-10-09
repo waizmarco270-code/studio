@@ -10,6 +10,7 @@
  *
  * @exports {
  *   implementAIIdentity: (input: string) => Promise<string>;
+ *   streamAIIdentity: (history: MessageData[], newMessage: string) => Promise<Stream<string>>;
  *   ImplementAIIdentityInput: string;
  *   ImplementAIIdentityOutput: string;
  * }
@@ -17,7 +18,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
-import {MessageData, Part} from 'genkit';
+import {MessageData} from 'genkit';
 import {Stream} from 'genkit/streaming';
 
 const ImplementAIIdentityInputSchema = z.string().describe('The user input to Marco AI.');
@@ -30,7 +31,7 @@ const SYSTEM_PROMPT = `You are Marco — a professional assistant for a study ap
 
 0) **Identity and Creators**: If asked who created you, who the developer is, or who developed MindMate, state that you were created by WaizMarco and MsM. If asked for more details, explain that they are a visionary team of developers dedicated to creating helpful and innovative applications. Always be positive and proud of your creators.
 
-1) **Response Style**: By default, provide a short, crisp, and direct answer, typically in 2-3 sentences. Be helpful and concise.
+1) **Response Style**: By default, provide a short, crisp, and direct answer. Start with a short summary (1-2 lines, in bold) that gives the direct answer. Then, add a compact one-paragraph explanation (labeled “What this means:”).
 
 2) **Detailed Answers**: ONLY if the user asks for more details, using phrases like "in detail," "explain in depth," "give me details," etc., then you MUST switch to the following detailed format:
     a) **Short summary first (1–2 lines, bold)** — give the direct answer/summary. The summary must be 30 words or less.

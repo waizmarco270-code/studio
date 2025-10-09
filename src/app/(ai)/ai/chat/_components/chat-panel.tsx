@@ -13,6 +13,7 @@ import {
   Settings,
   ArrowLeft,
   X as VolumeX,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,8 +95,9 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
   }, []);
 
   useEffect(() => {
-    // When the chat ID changes, fetch the corresponding chat messages
-    if (chatId !== 'new' && userId) {
+    if (chatId === 'new') {
+        setMessages(initialMessages);
+    } else if (userId) {
       startTransition(async () => {
         const chat = await getChat(chatId, userId);
         if (chat && chat.messages && chat.messages.length > 0) {
@@ -104,8 +106,6 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
           setMessages(initialMessages);
         }
       });
-    } else {
-      setMessages(initialMessages);
     }
   }, [chatId, userId]);
 
@@ -277,6 +277,10 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
     fileInputRef.current?.click();
   };
 
+  const handleExplainInDetail = (question: string) => {
+    handleSendMessage(`Based on our previous conversation, explain "${question}" in detail.`);
+  };
+
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 shrink-0">
@@ -290,11 +294,11 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
               <PanelLeft />
               <span className="sr-only">Toggle Sidebar</span>
             </Button>
-            <Button asChild variant="ghost" size="icon">
-              <a href="https://mindmateofficial.vercel.app/dashboard" target="_top">
-                <ArrowLeft />
-                <span className="sr-only">Back to MindMate</span>
-              </a>
+            <Button asChild variant="ghost" size="icon" href="https://mindmateofficial.vercel.app/dashboard" target="_top">
+                <Link href="https://mindmateofficial.vercel.app/dashboard" target="_top">
+                    <ArrowLeft />
+                    <span className="sr-only">Back to MindMate</span>
+                </Link>
             </Button>
             <div className="flex items-center gap-2">
               <Image src="/logo.jpg" alt="MindMate Logo" width={32} height={32} />
@@ -349,7 +353,26 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                 </div>
             ) : (
                 messages.map((message, index) => (
-                    <ChatMessage key={index} {...message} />
+                    <div key={index} className="space-y-2">
+                        <ChatMessage {...message} />
+                        {message.role === 'assistant' && !message.stream && typeof message.content === 'string' && (
+                            <div className="flex justify-start ml-12">
+                                <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                    handleExplainInDetail(
+                                    messages[index - 1]?.content as string || ""
+                                    )
+                                }
+                                disabled={isPending}
+                                >
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                Explain in detail
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 ))
             )}
             {isPending && messages[messages.length -1]?.role !== 'assistant' && (
