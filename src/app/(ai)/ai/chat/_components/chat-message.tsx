@@ -28,7 +28,7 @@ export function ChatMessage({ role, content, stream, isPending }: ChatMessagePro
     >
       {!isUser && (
         <Avatar className="h-8 w-8 border">
-          <AvatarCanvas isAnimated={isPending || (streamedContent.length > 0 && !!stream) || !!content} />
+          <AvatarCanvas isAnimated={isPending || (streamedContent.length > 0 && !!stream) || !!content && !stream} />
         </Avatar>
       )}
       <div
@@ -39,8 +39,8 @@ export function ChatMessage({ role, content, stream, isPending }: ChatMessagePro
             : "bg-card text-foreground"
         )}
       >
-        {isPending ? (
-           <div className="w-8 h-8">
+        {isPending && !stream ? (
+           <div className="w-6 h-6">
               <AvatarCanvas isAnimated={true} />
            </div>
         ) : stream ? (

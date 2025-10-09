@@ -356,7 +356,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
             ) : (
                 messages.map((message, index) => (
                     <div key={index} className="space-y-2">
-                        <ChatMessage {...message} />
+                        <ChatMessage {...message} isPending={isPending && index === messages.length - 1} />
                         {message.role === 'assistant' && !message.stream && typeof message.content === 'string' && (
                             <div className="flex justify-start ml-12">
                                 <Button
@@ -416,7 +416,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={placeholder}
-                className="min-h-[60px] w-full resize-none rounded-2xl border-2 border-border bg-muted py-[1.1rem] pl-4 pr-24 shadow-sm"
+                className="min-h-[52px] w-full resize-none rounded-xl border-2 border-border bg-muted py-3 pl-4 pr-24 shadow-sm"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     handleSubmit(e);
@@ -424,7 +424,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                 }}
                 disabled={isPending}
               />
-              <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
+              <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
                  <Button
                   type="button"
                   variant="ghost"
@@ -445,7 +445,7 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
                     disabled={isPending || !input.trim()}
                   >
                     {isPending ? (
-                      <div className="w-8 h-8">
+                      <div className="h-6 w-6">
                         <AvatarCanvas isAnimated={isPending} />
                       </div>
                     ) : (
