@@ -413,12 +413,12 @@ export function ChatPanel({ onShowTemplates, chatId, userId }: ChatPanelProps) {
             className="relative"
           >
             <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-xl blur-sm opacity-75 transition-opacity duration-300 animate-tilt"></div>
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl blur opacity-75 animate-border-flow hover:animate-tilt hover:animation-play-state-paused"></div>
                 <Textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={placeholder}
-                  className="relative min-h-[52px] w-full resize-none rounded-xl border-2 border-border bg-muted py-3 pl-4 pr-24 shadow-sm"
+                  className="relative min-h-[52px] w-full resize-none rounded-xl border-2 border-transparent bg-background bg-clip-padding py-3 pl-4 pr-24"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       handleSubmit(e);
